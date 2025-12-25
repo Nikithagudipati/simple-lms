@@ -55,11 +55,11 @@
 
         <div class="login-right">
           <h2>Login</h2>
-          <form id="loginForm" class="form">
+          <form id="loginForm" class="form" autocomplete="off">
             <label class="label">Email</label>
-            <input id="loginEmail" type="email" placeholder="enter your mail id" />
+            <input id="loginEmail" type="email" placeholder="enter your mail id" autocomplete="off" />
             <label class="label">Password</label>
-            <input id="loginPassword" type="password" placeholder="enter your password" />
+            <input id="loginPassword" type="password" placeholder="enter your password" autocomplete="new-password" />
             <div class="row" style="margin-top:12px; gap:10px;">
               <button type="submit" class="btn">Login</button>
             </div>
@@ -77,7 +77,7 @@
           <p class="muted">Browse available courses. Instructors manage their own courses and quizzes.</p>
         </div>
         <div style="display:flex;gap:8px;align-items:center">
-          <input id="searchCourse" class="search" placeholder="Search title or description..." />
+          <input id="searchCourse" class="search" placeholder="Search title or description..." autocomplete="off" type="text" />
           <select id="filterLevel" class="search">
             <option value="all">All levels</option>
             <option value="beginner">Beginner</option>
@@ -103,8 +103,8 @@
         </div>
       </div>
 
-      <h3>Materials</h3>
-      <ul id="detailMaterials"></ul>
+      <h3><i class="fa-solid fa-book-open"></i> Course Materials</h3>
+      <div id="detailMaterials"></div>
 
       <div id="quizAreaDetail" class="card hidden" style="margin-top:14px">
         <h3><i class="fa-solid fa-pen-to-square"></i> Quizzes</h3>
@@ -141,22 +141,26 @@ ANS: A"></textarea>
 
       <div id="timeChartWrapper" class="card hidden" style="margin-top:14px">
         <h3>Time Spent on Courses (minutes)</h3>
-        <canvas id="timeChart" height="120"></canvas>
+        <div style="position:relative;height:300px;">
+          <canvas id="timeChart"></canvas>
+        </div>
       </div>
 
       <div id="marksWrapper" class="card hidden" style="margin-top:14px">
-        <h3>Quiz Marks</h3>
+        <h3>Quiz Scores by Course</h3>
         <table id="marksTable" class="marks-table">
           <thead>
             <tr>
               <th>Course</th>
-              <th>Quiz</th>
-              <th>Score</th>
+              <th>Quizzes Attempted</th>
+              <th>Average Score</th>
             </tr>
           </thead>
           <tbody></tbody>
         </table>
-        <canvas id="marksChart" height="120" style="margin-top:10px"></canvas>
+        <div style="position:relative;height:300px;margin-top:10px">
+          <canvas id="marksChart"></canvas>
+        </div>
       </div>
     </section>
 
@@ -209,8 +213,40 @@ ANS: A"></textarea>
           <div id="adminCourses"></div>
         </div>
       </div>
+
+      <!-- EDIT COURSE FORM (Inline in Admin Panel) -->
+      <div id="editCourseForm" class="card hidden" style="margin-top:16px">
+        <h2><i class="fa-solid fa-edit"></i> Edit Course</h2>
+        <div class="form">
+          <label class="label">Title</label>
+          <input id="editCourseTitle" placeholder="E.g. Modern CSS Layouts" />
+          <label class="label">Description</label>
+          <input id="editCourseDesc" placeholder="Short description" />
+          <label class="label" id="editCourseStatusLabel">Status</label>
+          <select id="editCourseStatus">
+            <option value="draft">Draft</option>
+            <option value="published">Published</option>
+          </select>
+          <div style="margin-top:12px">
+            <button id="saveEditCourseBtn" class="btn">Save Changes</button>
+            <button id="cancelEditCourseBtn" class="btn secondary" style="margin-left:8px">Cancel</button>
+          </div>
+          <p id="editCourseMsg" class="success-msg"></p>
+        </div>
+      </div>
     </section>
   </main>
+
+  <!-- Material Viewer Modal -->
+  <dialog id="materialViewerModal" class="card" style="color:#fff; background:#0f0f10; border:none; padding:0; max-width:95vw; max-height:95vh; width:1000px; border-radius:12px; overflow:visible; z-index:10000;">
+    <div style="background:linear-gradient(135deg, #1a1a1a 0%, #0f0f10 100%); padding:20px; border-bottom:1px solid #333; display:flex;justify-content:space-between;align-items:center; position:relative; z-index:10001;">
+      <h3 id="materialViewerTitle" style="margin:0; color:#ffd60a; font-size:20px;"></h3>
+      <button class="btn small secondary" onclick="document.getElementById('materialViewerModal').close()" style="background:#333; border:none; color:#fff; padding:8px 16px; border-radius:6px; cursor:pointer;">
+        <i class="fa-solid fa-times"></i> Close
+      </button>
+    </div>
+    <div id="materialViewerContent" style="max-height:calc(95vh - 100px);overflow-y:auto; overflow-x:hidden; padding:20px; background:#0d0d0e; position:relative; z-index:10001; display:block; visibility:visible;"></div>
+  </dialog>
 
   <script src="app.js"></script>
 </body>

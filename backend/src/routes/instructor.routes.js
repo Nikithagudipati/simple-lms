@@ -8,15 +8,41 @@ const { Course, Quiz, Question, CourseMaterial, Attempt, User } = require('../mo
    CREATE COURSE
 ========================= */
 router.post('/courses', auth, role('instructor'), async (req, res) => {
-  const { title, description } = req.body;
+  const { title, description, status } = req.body;
 
   const course = await Course.create({
     title,
     description,
     instructorId: req.user.id,
-    status: 'draft'
+    status: status || 'published' // Default to 'published' so courses appear in catalog
   });
 
+  res.json(course);
+});
+
+/* =========================
+   UPDATE COURSE (INSTRUCTOR)
+========================= */
+router.put('/courses/:id', auth, role('instructor'), async (req, res) => {
+  const { title, description, status } = req.body;
+
+  const course = await Course.findByPk(req.params.id);
+  if (!course) {
+    return res.status(404).json({ msg: 'Course not found' });
+  }
+
+  // Ensure instructor owns the course
+  if (course.instructorId !== req.user.id) {
+    return res.status(403).json({ msg: 'Not your course' });
+  }
+
+  course.title = title ?? course.title;
+  course.description = description ?? course.description;
+  if (status) {
+    course.status = status;
+  }
+
+  await course.save();
   res.json(course);
 });
 
@@ -75,6 +101,110 @@ router.post('/quizzes', auth, role('instructor'), async (req, res) => {
     quizId: quiz.id
   });
 });
+
+/* =========================
+   GET QUIZ FOR EDITING
+========================= */
+router.get('/quizzes/:quizId', auth, role('instructor'), async (req, res) => {
+  const quiz = await Quiz.findByPk(req.params.quizId, {
+    include: [{
+      model: Course
+    }, {
+      model: Question
+    }]
+  });
+
+  if (!quiz) {
+    return res.status(404).json({ msg: 'Quiz not found' });
+  }
+
+  // Ensure instructor owns the course
+  if (quiz.Course.instructorId !== req.user.id) {
+    return res.status(403).json({ msg: 'Not your quiz' });
+  }
+
+  res.json({
+    id: quiz.id,
+    title: quiz.title,
+    courseId: quiz.CourseId,
+    questions: quiz.Questions.map(q => ({
+      id: q.id,
+      question: q.question,
+      options: q.options,
+      correctAnswer: q.correctAnswer
+    }))
+  });
+});
+
+/* =========================
+   UPDATE QUIZ
+========================= */
+router.put('/quizzes/:quizId', auth, role('instructor'), async (req, res) => {
+  const { title, questions } = req.body;
+  const quizId = req.params.quizId;
+
+  const quiz = await Quiz.findByPk(quizId, {
+    include: Course
+  });
+
+  if (!quiz) {
+    return res.status(404).json({ msg: 'Quiz not found' });
+  }
+
+  // Ensure instructor owns the course
+  if (quiz.Course.instructorId !== req.user.id) {
+    return res.status(403).json({ msg: 'Not your quiz' });
+  }
+
+  // Update quiz title
+  if (title) {
+    quiz.title = title;
+    await quiz.save();
+  }
+
+  // Update questions if provided
+  if (questions && Array.isArray(questions)) {
+    // Delete existing questions
+    await Question.destroy({ where: { QuizId: quizId } });
+
+    // Create new questions
+    for (const q of questions) {
+      await Question.create({
+        question: q.question,
+        options: q.options,
+        correctAnswer: q.correctAnswer,
+        QuizId: quizId
+      });
+    }
+  }
+
+  res.json({
+    msg: 'Quiz updated successfully',
+    quizId: quiz.id
+  });
+});
+
+/* =========================
+   DELETE QUIZ
+========================= */
+router.delete('/quizzes/:quizId', auth, role('instructor'), async (req, res) => {
+  const quiz = await Quiz.findByPk(req.params.quizId, {
+    include: Course
+  });
+
+  if (!quiz) {
+    return res.status(404).json({ msg: 'Quiz not found' });
+  }
+
+  // Ensure instructor owns the course
+  if (quiz.Course.instructorId !== req.user.id) {
+    return res.status(403).json({ msg: 'Not your quiz' });
+  }
+
+  await Quiz.destroy({ where: { id: req.params.quizId } });
+  res.json({ msg: 'Quiz deleted successfully' });
+});
+
 /* =========================
    VIEW QUIZ RESULTS (INSTRUCTOR)
 ========================= */
@@ -99,39 +229,19 @@ router.get('/quiz-results/:quizId', auth, role('instructor'), async (req, res) =
     where: { QuizId: quizId },
     attributes: ['score', 'createdAt'],
     include: {
-      model: require('../models').User,
+      model: User,
       attributes: ['id', 'name', 'email']
     }
   });
 
-  res.json(attempts);
-});
-
-/* =========================
-   VIEW QUIZ RESULTS (INSTRUCTOR)
-========================= */
-router.get('/quiz-results/:quizId', auth, role('instructor'), async (req, res) => {
-  const quizId = req.params.quizId;
-
-  const quiz = await Quiz.findByPk(quizId, {
-    include: [
-      {
-        model: Attempt,
-        include: ['User']
-      }
-    ]
-  });
-
-  if (!quiz) {
-    return res.status(404).json({ msg: 'Quiz not found' });
-  }
-
   res.json({
     quizTitle: quiz.title,
-    attempts: quiz.Attempts.map(a => ({
-      studentId: a.UserId,
-      studentName: a.User?.name,
-      score: a.score
+    attempts: attempts.map(a => ({
+      studentId: a.User.id,
+      studentName: a.User.name,
+      studentEmail: a.User.email,
+      score: a.score,
+      attemptedAt: a.createdAt
     }))
   });
 });
