@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>SimpleLMS — Full Demo</title>
+
+  <!-- Fonts & icons -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+  <link rel="stylesheet" href="styles.css" />
+  <!-- Chart.js for graphs -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<dialog id="adminUserDialog" class="card" style="color:#fff; background:#0f0f10; border:none; padding:20px;">
+
+  <h3>User Analytics</h3>
+  <pre id="adminUserDialogContent"></pre>
+  <div style="margin-top:12px;text-align:right">
+    <button class="btn small" onclick="document.getElementById('adminUserDialog').close()">
+      Close
+    </button>
+  </div>
+</dialog>
+
+<body>
+  <!-- Header -->
+  <header class="site-header">
+    <div class="brand">
+      <div class="logo-mark">SL</div>
+      <div class="brand-text">SimpleLMS</div>
+    </div>
+
+    <nav class="nav">
+      <button id="navCatalog" class="nav-btn"><i class="fa-solid fa-book"></i> Courses</button>
+      <button id="navDashboard" class="nav-btn"><i class="fa-solid fa-gauge"></i> Dashboard</button>
+      <button id="navCreate" class="nav-btn hidden"><i class="fa-solid fa-plus"></i> Create</button>
+      <div id="roleBadge" class="role-badge"><i class="fa-solid fa-user"></i> Guest</div>
+      <button id="btnLogout" class="nav-btn secondary hidden"><i class="fa-solid fa-right-from-bracket"></i>
+        Logout</button>
+    </nav>
+  </header>
+
+  <main class="container">
+    <!-- LOGIN -->
+    <section id="loginCard" class="card">
+      <div class="login-grid">
+        <div class="login-left">
+          <h1 class="hero-title">Simple<span class="accent">LMS</span></h1>
+          <p class="muted">LMS — enter email & password to sign in.</p>
+          <!-- <p class="small muted">Demo accounts: admin@lms.test / 123  ·  instructor@lms.test / 123  ·  student@lms.test / 123</p> -->
+        </div>
+
+        <div class="login-right">
+          <h2>Login</h2>
+          <form id="loginForm" class="form">
+            <label class="label">Email</label>
+            <input id="loginEmail" type="email" placeholder="enter your mail id" />
+            <label class="label">Password</label>
+            <input id="loginPassword" type="password" placeholder="enter your password" />
+            <div class="row" style="margin-top:12px; gap:10px;">
+              <button type="submit" class="btn">Login</button>
+            </div>
+            <p id="loginError" class="error-msg"></p>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <!-- CATALOG -->
+    <section id="catalogPage" class="card hidden">
+      <div class="page-header">
+        <div>
+          <h2><i class="fa-solid fa-book"></i> Course Catalog</h2>
+          <p class="muted">Browse available courses. Instructors manage their own courses and quizzes.</p>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <input id="searchCourse" class="search" placeholder="Search title or description..." />
+          <select id="filterLevel" class="search">
+            <option value="all">All levels</option>
+            <option value="beginner">Beginner</option>
+            <option value="intermediate">Intermediate</option>
+            <option value="advanced">Advanced</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="coursesGrid" class="grid"></div>
+    </section>
+
+    <!-- COURSE DETAIL -->
+    <section id="courseDetailPage" class="card hidden">
+      <div class="detail-header">
+        <div>
+          <h2 id="detailTitle"></h2>
+          <p id="detailInstructor" class="muted"></p>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button id="enrollBtnDetail" class="btn">Enroll</button>
+          <button id="backToCatalogBtn" class="btn secondary">Back to catalog</button>
+        </div>
+      </div>
+
+      <h3>Materials</h3>
+      <ul id="detailMaterials"></ul>
+
+      <div id="quizAreaDetail" class="card hidden" style="margin-top:14px">
+        <h3><i class="fa-solid fa-pen-to-square"></i> Quizzes</h3>
+        <div id="quizList"></div>
+
+        <div id="createQuizBlock" class="create-quiz hidden" style="margin-top:12px">
+          <h4>Create Quiz (for this course)</h4>
+          <input id="quizTitle" placeholder="Quiz title (e.g. Intro Quiz)" />
+          <textarea id="quizQuestions" placeholder="Write questions in simple format:
+Q: Question?
+A option
+B option
+C option
+D option
+ANS: A"></textarea>
+          <div class="row" style="margin-top:8px">
+            <button id="createQuizBtn" class="btn small">Create Quiz</button>
+            <button id="cancelCreateQuizBtn" class="btn small secondary">Cancel</button>
+          </div>
+          <p id="createQuizMsg" class="success-msg"></p>
+        </div>
+      </div>
+    </section>
+
+    <!-- DASHBOARD -->
+    <section id="dashboardPage" class="card hidden">
+      <h2><i class="fa-solid fa-gauge"></i> Dashboard</h2>
+      <div id="dashboardError" class="error-msg"></div>
+
+      <div id="dashboardContent" class="dashboard-grid">
+        <div class="dash-widget" id="dashLeft"></div>
+        <div class="dash-widget" id="dashRight"></div>
+      </div>
+
+      <div id="timeChartWrapper" class="card hidden" style="margin-top:14px">
+        <h3>Time Spent on Courses (minutes)</h3>
+        <canvas id="timeChart" height="120"></canvas>
+      </div>
+
+      <div id="marksWrapper" class="card hidden" style="margin-top:14px">
+        <h3>Quiz Marks</h3>
+        <table id="marksTable" class="marks-table">
+          <thead>
+            <tr>
+              <th>Course</th>
+              <th>Quiz</th>
+              <th>Score</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+        <canvas id="marksChart" height="120" style="margin-top:10px"></canvas>
+      </div>
+    </section>
+
+    <!-- CREATE (Instructor) -->
+    <section id="createPage" class="card hidden">
+      <h2><i class="fa-solid fa-plus"></i> Create Course</h2>
+      <div class="form">
+        <label class="label">Title</label>
+        <input id="createTitle" placeholder="E.g. Modern CSS Layouts" />
+        <label class="label">Description</label>
+        <input id="createDesc" placeholder="Short description" />
+        <label class="label">Level</label>
+        <select id="createLevel">
+          <option value="beginner">Beginner</option>
+          <option value="intermediate">Intermediate</option>
+          <option value="advanced">Advanced</option>
+        </select>
+        <label class="label">Materials (comma separated)</label>
+        <input id="createMaterials" placeholder="Intro.pdf, cheatsheet.pdf" />
+        <div style="margin-top:12px">
+          <button id="createCourseBtn" class="btn">Create Course</button>
+        </div>
+        <p id="createCourseMsg" class="success-msg"></p>
+      </div>
+    </section>
+
+    <!-- ADMIN -->
+    <section id="adminPanel" class="card hidden">
+      <h2><i class="fa-solid fa-user-shield"></i> Admin Panel</h2>
+      <div class="grid" style="margin-top:12px">
+        <div class="card">
+          <h3>System Stats</h3>
+          <p>Total Users: <span id="adminUserCount">0</span></p>
+          <p>Total Courses: <span id="adminCourseCount">0</span></p>
+          <p>Total Enrollments: <span id="adminEnrollCount">0</span></p>
+        </div>
+
+        <div class="card">
+          <h3>Analytics</h3>
+          <div id="adminAnalytics"></div>
+        </div>
+
+        <div class="card">
+          <h3>Manage Users</h3>
+          <div id="adminUsers"></div>
+        </div>
+
+        <div class="card">
+          <h3>Manage Courses</h3>
+          <div id="adminCourses"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+
+</html>
