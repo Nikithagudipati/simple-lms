@@ -238,10 +238,27 @@ ANS: A"></textarea>
   </main>
 
   <!-- Material Viewer Modal -->
-  <dialog id="materialViewerModal" class="card" style="color:#fff; background:#0f0f10; border:none; padding:0; max-width:95vw; max-height:95vh; width:1000px; border-radius:12px; overflow:visible; z-index:10000;">
+  <dialog id="materialViewerModal" style="
+    color:#fff; 
+    background:#0f0f10; 
+    border:none; 
+    padding:0; 
+    max-width:95vw; 
+    max-height:95vh; 
+    width:1000px; 
+    border-radius:12px; 
+    overflow:visible; 
+    z-index:10000;
+    position:fixed;
+    top:50%;
+    left:50%;
+    transform:translate(-50%, -50%);
+    margin:0;
+    box-shadow:0 10px 50px rgba(0,0,0,0.8);
+  ">
     <div style="background:linear-gradient(135deg, #1a1a1a 0%, #0f0f10 100%); padding:20px; border-bottom:1px solid #333; display:flex;justify-content:space-between;align-items:center; position:relative; z-index:10001;">
       <h3 id="materialViewerTitle" style="margin:0; color:#ffd60a; font-size:20px;"></h3>
-      <button class="btn small secondary" onclick="document.getElementById('materialViewerModal').close()" style="background:#333; border:none; color:#fff; padding:8px 16px; border-radius:6px; cursor:pointer;">
+      <button id="materialCloseBtn" class="btn small secondary" style="background:#ff4444; border:none; color:#fff; padding:10px 16px; border-radius:6px; cursor:pointer; flex-shrink:0; font-weight:600; transition:background 0.3s;">
         <i class="fa-solid fa-times"></i> Close
       </button>
     </div>
