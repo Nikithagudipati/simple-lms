@@ -52,6 +52,33 @@ const API_BASE = "http://localhost:5000/api";
 
   let current = loadCurrent();
 
+  // Save and load utilities
+  const KEY_STREAK = 'lms_streak';
+  let streaks = {};
+  
+  function load(key) {
+    try {
+      const raw = localStorage.getItem(key);
+      return raw ? JSON.parse(raw) : null;
+    } catch (e) {
+      return null;
+    }
+  }
+  
+  function save(key, value) {
+    try {
+      localStorage.setItem(key, JSON.stringify(value));
+    } catch (e) {
+      console.error('Failed to save:', key, e);
+    }
+  }
+  
+  // Load streaks on startup
+  const loadedStreaks = load(KEY_STREAK);
+  if (loadedStreaks) {
+    streaks = loadedStreaks;
+  }
+
   /* ---------- Validate token on page load ---------- */
   async function validateTokenOnLoad() {
     const token = getToken();
@@ -93,6 +120,17 @@ const API_BASE = "http://localhost:5000/api";
   }
 
   /* ---------- DOM refs ---------- */
+  // Wait for DOM to be ready
+  const waitForDOM = () => {
+    return new Promise((resolve) => {
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', resolve);
+      } else {
+        resolve();
+      }
+    });
+  };
+
   const refs = {
     navCatalog: document.getElementById('navCatalog'),
     navDashboard: document.getElementById('navDashboard'),
@@ -275,10 +313,10 @@ const API_BASE = "http://localhost:5000/api";
   })();
 
   /* ---------- Nav handlers ---------- */
-  refs.navCatalog.addEventListener('click', (e) => { e.preventDefault(); loadCourses(); });
-  refs.navDashboard.addEventListener('click', (e) => { e.preventDefault(); if (!current) { showLogin(); refs.loginError.textContent = 'Please login to view the dashboard.'; } else { if (current.role === 'admin') showAdminPanel(); else showDashboard(); } });
-  refs.navCreate.addEventListener('click', (e) => { e.preventDefault(); if (!current || (current.role !== 'instructor' && current.role !== 'admin')) { refs.dashboardError.textContent = 'Create is for instructors/admins only.'; return; } hideAllPages(); refs.createPage.classList.remove('hidden'); });
-  refs.btnLogout.addEventListener('click', () => {
+  if (refs.navCatalog) refs.navCatalog.addEventListener('click', (e) => { e.preventDefault(); loadCourses(); });
+  if (refs.navDashboard) refs.navDashboard.addEventListener('click', (e) => { e.preventDefault(); if (!current) { showLogin(); refs.loginError.textContent = 'Please login to view the dashboard.'; } else { if (current.role === 'admin') showAdminPanel(); else showDashboard(); } });
+  if (refs.navCreate) refs.navCreate.addEventListener('click', (e) => { e.preventDefault(); if (!current || (current.role !== 'instructor' && current.role !== 'admin')) { refs.dashboardError.textContent = 'Create is for instructors/admins only.'; return; } hideAllPages(); refs.createPage.classList.remove('hidden'); });
+  if (refs.btnLogout) refs.btnLogout.addEventListener('click', () => {
     current = null;
     removeToken();
     removeCurrent();
@@ -340,25 +378,29 @@ const API_BASE = "http://localhost:5000/api";
     }
   }
 
-  refs.loginForm.addEventListener('submit', async (ev) => {
-    ev.preventDefault();
-    refs.loginError.textContent = '';
-    const email = refs.loginEmail.value.trim();
-    const pass = refs.loginPassword.value;
-    if (!email || !pass) { refs.loginError.textContent = 'Enter email and password.'; return; }
+  if (refs.loginForm) {
+    refs.loginForm.addEventListener('submit', async (ev) => {
+      ev.preventDefault();
+      refs.loginError.textContent = '';
+      const email = refs.loginEmail.value.trim();
+      const pass = refs.loginPassword.value;
+      if (!email || !pass) { refs.loginError.textContent = 'Enter email and password.'; return; }
 
-    const result = await login(email, pass);
-    if (!result.success) {
-      refs.loginError.textContent = result.error;
-      return;
-    }
+      const result = await login(email, pass);
+      if (!result.success) {
+        refs.loginError.textContent = result.error;
+        return;
+      }
 
-    updateHeader();
-    // clear inputs
-    refs.loginEmail.value = ''; refs.loginPassword.value = '';
-    if (current.role === 'admin') showAdminPanel(); else showDashboard();
-    resetInactivityTimer();
-  });
+      updateHeader();
+      // clear inputs
+      refs.loginEmail.value = ''; refs.loginPassword.value = '';
+      if (current.role === 'admin') showAdminPanel(); else showDashboard();
+      resetInactivityTimer();
+    });
+  } else {
+    console.error('Login form not found in DOM');
+  }
 
   function trackDailyStreak(email) {
     const today = new Date().toISOString().slice(0, 10);
@@ -541,6 +583,12 @@ const API_BASE = "http://localhost:5000/api";
     const modal = document.getElementById('materialViewerModal');
     const titleEl = document.getElementById('materialViewerTitle');
     const contentEl = document.getElementById('materialViewerContent');
+    // If course detail page is not visible, don't show modal globally — open in new tab instead
+    if (refs.courseDetailPage && refs.courseDetailPage.classList.contains('hidden')) {
+      console.warn('Course detail page not visible — opening material in new tab');
+      window.open(material.url, '_blank');
+      return;
+    }
     
     if (!modal || !titleEl || !contentEl) {
       console.error('Material viewer elements not found', { modal, titleEl, contentEl });
@@ -573,17 +621,45 @@ const API_BASE = "http://localhost:5000/api";
       
       if (videoId) {
         contentEl.innerHTML = `
-          <div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;max-width:100%;">
-            <iframe style="position:absolute;top:0;left:0;width:100%;height:100%;" 
-              src="https://www.youtube.com/embed/${videoId}" 
-              frameborder="0" 
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-              allowfullscreen>
-            </iframe>
+          <div style="width:100%;background:#0d0d0e;padding:0;">
+            <!-- Video Player -->
+            <div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;max-width:100%;margin-bottom:20px;border-radius:8px;overflow:hidden;">
+              <iframe style="position:absolute;top:0;left:0;width:100%;height:100%;" 
+                src="https://www.youtube.com/embed/${videoId}" 
+                frameborder="0" 
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                allowfullscreen>
+              </iframe>
+            </div>
+            
+            <!-- Action Buttons -->
+            <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px;position:relative;z-index:11000;">
+              <a href="https://www.youtube.com/watch?v=${videoId}" target="_blank" class="btn" style="flex:1;min-width:180px;text-align:center;padding:12px;background:#ff0000;color:#fff;text-decoration:none;border-radius:6px;font-weight:600;display:inline-flex;align-items:center;justify-content:center;gap:8px;">
+                <i class="fa-brands fa-youtube"></i> Open on YouTube
+              </a>
+              <button onclick="window.open('https://www.youtube.com/watch?v=${videoId}', '_blank')" class="btn secondary" style="flex:1;min-width:180px;padding:12px;background:#333;color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:600;display:inline-flex;align-items:center;justify-content:center;gap:8px;">
+                <i class="fa-solid fa-share-from-square"></i> Watch Full Video
+              </button>
+            </div>
+            
+            <!-- Info Message -->
+            <div style="padding:16px;background:#1a1a1a;border-radius:8px;border-left:4px solid #ff0000;margin-top:12px;position:relative;z-index:10001;">
+              <p style="color:#fff;font-size:14px;margin:0;line-height:1.6;">
+                <i class="fa-solid fa-info-circle" style="color:#ff0000;margin-right:8px;"></i> 
+                <strong>Note:</strong> You can watch the video directly in the modal or open it in full view on YouTube.
+              </p>
+            </div>
           </div>
         `;
       } else {
-        contentEl.innerHTML = `<p>Invalid video URL. <a href="${material.url}" target="_blank">Open in new tab</a></p>`;
+        contentEl.innerHTML = `
+          <div style="text-align:center;padding:20px;">
+            <p style="color:#fff;margin-bottom:12px;">Invalid video URL.</p>
+            <a href="${material.url}" target="_blank" class="btn" style="padding:12px 24px;background:#ff0000;color:#fff;text-decoration:none;border-radius:6px;font-weight:600;display:inline-flex;align-items:center;justify-content:center;gap:8px;">
+              <i class="fa-solid fa-external-link"></i> Open in New Tab
+            </a>
+          </div>
+        `;
       }
     } else if (material.type === 'pdf') {
       const pdfUrl = material.url;
@@ -608,30 +684,20 @@ const API_BASE = "http://localhost:5000/api";
           </div>
           
           <!-- Action Buttons -->
-          <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px;">
-            <a href="${pdfUrl}" target="_blank" class="btn" style="flex:1;min-width:180px;text-align:center;padding:12px;background:#ffd60a;color:#000;text-decoration:none;border-radius:6px;font-weight:600;">
+          <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px;position:relative;z-index:11000;">
+            <a href="${pdfUrl}" target="_blank" class="btn" style="flex:1;min-width:180px;text-align:center;padding:12px;background:#ffd60a;color:#000;text-decoration:none;border-radius:6px;font-weight:600;display:inline-flex;align-items:center;justify-content:center;gap:8px;">
               <i class="fa-solid fa-external-link"></i> Open PDF in New Tab
             </a>
-            <button class="btn secondary" onclick="window.open('${pdfUrl}', '_blank')" style="flex:1;min-width:180px;padding:12px;background:#333;color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:600;">
+            <button id="pdfDownloadBtn" class="btn secondary" style="flex:1;min-width:180px;padding:12px;background:#333;color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:600;display:inline-flex;align-items:center;justify-content:center;gap:8px;">
               <i class="fa-solid fa-download"></i> Download PDF
             </button>
-            <button class="btn secondary" onclick="
-              const iframe = document.getElementById('pdfViewerIframe');
-              const loading = document.getElementById('pdfLoadingMsg');
-              if (iframe) {
-                if (loading) loading.style.display = 'block';
-                iframe.src = '${googleViewerUrl}';
-                setTimeout(function() {
-                  if (loading) loading.style.display = 'none';
-                }, 2000);
-              }
-            " style="flex:1;min-width:180px;padding:12px;background:#333;color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:600;">
+            <button id="pdfGoogleViewerBtn" class="btn secondary" style="flex:1;min-width:180px;padding:12px;background:#333;color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:600;display:inline-flex;align-items:center;justify-content:center;gap:8px;">
               <i class="fa-solid fa-refresh"></i> Try Google Viewer
             </button>
           </div>
           
           <!-- Info Message -->
-          <div style="padding:16px;background:#1a1a1a;border-radius:8px;border-left:4px solid #ffd60a;margin-top:12px;">
+          <div style="padding:16px;background:#1a1a1a;border-radius:8px;border-left:4px solid #ffd60a;margin-top:12px;position:relative;z-index:10001;">
             <p style="color:#fff;font-size:14px;margin:0;line-height:1.6;">
               <i class="fa-solid fa-info-circle" style="color:#ffd60a;margin-right:8px;"></i> 
               <strong>Note:</strong> If the PDF doesn't display above, click "Open PDF in New Tab" to view it in your browser's PDF viewer. Some PDFs may not load in embedded viewers due to security restrictions.
@@ -639,6 +705,36 @@ const API_BASE = "http://localhost:5000/api";
           </div>
         </div>
       `;
+      
+      // Attach event listeners to buttons after creating content
+      setTimeout(() => {
+        const downloadBtn = document.getElementById('pdfDownloadBtn');
+        const googleViewerBtn = document.getElementById('pdfGoogleViewerBtn');
+        
+        if (downloadBtn) {
+          downloadBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            window.open('${pdfUrl}', '_blank');
+          });
+        }
+        
+        if (googleViewerBtn) {
+          googleViewerBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            const iframe = document.getElementById('pdfViewerIframe');
+            const loading = document.getElementById('pdfLoadingMsg');
+            if (iframe) {
+              if (loading) loading.style.display = 'block';
+              iframe.src = '${googleViewerUrl}';
+              setTimeout(function() {
+                if (loading) loading.style.display = 'none';
+              }, 2000);
+            }
+          });
+        }
+      }, 50);
       
       // Hide loading message after iframe loads or timeout
       setTimeout(() => {
@@ -654,22 +750,28 @@ const API_BASE = "http://localhost:5000/api";
           }, 3000);
         }
       }, 100);
+    } else {
+      contentEl.innerHTML = '<p>Unsupported material type.</p>';
     }
     
     // Show modal - ensure it's visible
     if (modal) {
+      modal.style.display = 'block';
+      modal.style.visibility = 'visible';
+      modal.style.opacity = '1';
+      modal.style.position = 'fixed';
+      modal.style.top = '50%';
+      modal.style.left = '50%';
+      modal.style.transform = 'translate(-50%, -50%)';
+      modal.style.zIndex = '10000';
+      
+      // Add backdrop styling
       if (typeof modal.showModal === 'function') {
-        modal.showModal();
-      } else {
-        // Fallback for browsers that don't support showModal
-        modal.style.display = 'block';
-        modal.style.position = 'fixed';
-        modal.style.top = '50%';
-        modal.style.left = '50%';
-        modal.style.transform = 'translate(-50%, -50%)';
-        modal.style.zIndex = '10000';
-        modal.style.visibility = 'visible';
-        modal.style.opacity = '1';
+        try {
+          modal.showModal();
+        } catch (e) {
+          console.log('showModal not available, using fallback');
+        }
       }
       
       // Ensure content is visible
@@ -677,14 +779,35 @@ const API_BASE = "http://localhost:5000/api";
         contentEl.style.display = 'block';
         contentEl.style.visibility = 'visible';
         contentEl.style.opacity = '1';
+        contentEl.style.zIndex = '10001';
+      }
+      
+      // Add backdrop overlay
+      const backdrop = document.querySelector('dialog[open]::backdrop');
+      if (!backdrop) {
+        const style = document.createElement('style');
+        style.textContent = `
+          dialog[open]::backdrop {
+            background-color: rgba(0, 0, 0, 0.7);
+            z-index: 9999;
+          }
+        `;
+        if (!document.querySelector('style[data-modal-backdrop]')) {
+          style.setAttribute('data-modal-backdrop', 'true');
+        document.head.appendChild(style);
+        }
       }
     }
   }
 
   /* ---------- COURSE DETAIL & QUIZZES ---------- */
-  let activeCourseId = null, courseTimerInterval = null, activeQuizTimer = null, currentCourseData = null;
-  let courseTimeTracker = null; // Track time spent on course detail page
-  let courseTimeStart = null;
+  // Use var for hoisting to avoid temporal-dead-zone errors when functions are called early
+  var activeCourseId = null;
+  var courseTimerInterval = null;
+  var activeQuizTimer = null;
+  var currentCourseData = null;
+  var courseTimeTracker = null; // Track time spent on course detail page
+  var courseTimeStart = null;
 
   async function trackCourseTime(courseId, minutes) {
     if (!current || current.role !== 'student' || !courseId || !minutes) return;
@@ -705,11 +828,21 @@ const API_BASE = "http://localhost:5000/api";
 
   async function openCourseDetail(id) {
     try {
-      // Stop tracking time for previous course
-      if (activeCourseId && courseTimeStart && current && current.role === 'student') {
+      // Ensure we have an id; if not, try to use currently active course
+      if (!id) {
+        id = activeCourseId;
+      }
+      if (!id) {
+        throw new Error('No course selected');
+      }
+
+      // Stop tracking time for previous course (guard against TDZ/reference errors)
+      let prevActive = null;
+      try { prevActive = activeCourseId; } catch (e) { prevActive = null; }
+      if (prevActive && courseTimeStart && current && current.role === 'student') {
         const minutesSpent = Math.floor((Date.now() - courseTimeStart) / 60000); // Convert to minutes
         if (minutesSpent > 0) {
-          await trackCourseTime(activeCourseId, minutesSpent);
+          await trackCourseTime(prevActive, minutesSpent);
         }
         if (courseTimeTracker) {
           clearInterval(courseTimeTracker);
@@ -730,7 +863,12 @@ const API_BASE = "http://localhost:5000/api";
         desc: course.description,
         instructor: course.Instructor?.name || 'Unknown Instructor',
         instructorId: course.Instructor?.id || course.instructorId,
-        materials: course.CourseMaterials?.map(m => m.title) || [],
+        materials: course.CourseMaterials?.map(m => ({
+          id: m.id,
+          title: m.title,
+          type: m.type,
+          url: m.url
+        })) || [],
         quizzes: course.Quizzes?.map(q => ({
           id: q.id,
           title: q.title,
@@ -749,12 +887,16 @@ const API_BASE = "http://localhost:5000/api";
         courseTimeStart = Date.now();
         // Track time every 1 minute
         courseTimeTracker = setInterval(async () => {
-          if (activeCourseId && courseTimeStart) {
-            const minutesSpent = Math.floor((Date.now() - courseTimeStart) / 60000);
-            if (minutesSpent >= 1) { // Track every 1 minute
-              await trackCourseTime(activeCourseId, 1);
-              courseTimeStart = Date.now(); // Reset timer
+          try {
+            if (activeCourseId && courseTimeStart) {
+              const minutesSpent = Math.floor((Date.now() - courseTimeStart) / 60000);
+              if (minutesSpent >= 1) { // Track every 1 minute
+                await trackCourseTime(activeCourseId, 1);
+                courseTimeStart = Date.now(); // Reset timer
+              }
             }
+          } catch (e) {
+            console.error('Error in course time tracker:', e);
           }
         }, 60 * 1000); // Check every 1 minute
       }
@@ -1255,7 +1397,7 @@ const API_BASE = "http://localhost:5000/api";
       setTimeout(() => {
         refs.createQuizMsg.textContent = '';
         refs.createQuizBlock.classList.add('hidden');
-        openCourseDetail(activeCourseId);
+        if (activeCourseId) openCourseDetail(activeCourseId);
       }, 800);
     } catch (error) {
       refs.createQuizMsg.textContent = error.message;
@@ -1355,7 +1497,7 @@ const API_BASE = "http://localhost:5000/api";
 
       alert('Quiz deleted successfully');
       // Refresh course detail
-      openCourseDetail(activeCourseId);
+      if (activeCourseId) openCourseDetail(activeCourseId);
     } catch (error) {
       console.error('Error deleting quiz:', error);
       alert('Failed to delete quiz: ' + error.message);
@@ -1521,7 +1663,7 @@ const API_BASE = "http://localhost:5000/api";
 
       alert(`You scored ${score}/${total} (${percent}%)`);
       renderDashboard();
-      openCourseDetail(activeCourseId);
+      if (activeCourseId) openCourseDetail(activeCourseId);
     } catch (error) {
       alert('Failed to submit quiz: ' + error.message);
     }
@@ -2541,6 +2683,47 @@ const API_BASE = "http://localhost:5000/api";
     refs.searchCourse.removeAttribute('disabled');
   }
 
+  /* ---------- Modal Close Button Handler (initialized at the end) ---------- */
+  // Use a named initializer function to attach modal handlers once DOM is ready
+  function initModalHandler() {
+    const modal = document.getElementById('materialViewerModal');
+    const closeBtn = document.getElementById('materialCloseBtn');
+
+    if (!modal || !closeBtn) {
+      // If elements not present yet, retry shortly
+      setTimeout(initModalHandler, 100);
+      return;
+    }
+
+    // Function to close the modal
+    function closeModal() {
+      try { if (typeof modal.close === 'function') modal.close(); } catch (e) {}
+      modal.style.display = 'none';
+    }
+
+    // Close button click handler
+    closeBtn.addEventListener('click', function(e) {
+      e && e.preventDefault();
+      e && e.stopPropagation();
+      closeModal();
+    });
+
+    // Escape key handler
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') closeModal();
+    });
+
+    // Click outside modal to close
+    modal.addEventListener('click', function(e) {
+      if (e.target === modal) closeModal();
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initModalHandler);
+  } else {
+    initModalHandler();
+  }
 
 })();
 
