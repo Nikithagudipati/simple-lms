@@ -205,22 +205,19 @@ const API_BASE = "http://localhost:5000/api";
   /* ---------- Header / pages ---------- */
   function updateHeader() {
     const header = document.querySelector('.site-header');
+    // Always make sure the header is visible
+    if (header) {
+      header.style.display = 'flex';
+    }
+    
     if (current) {
       refs.roleBadge.innerHTML = `<i class="fa-solid fa-user"></i> ${escapeHTML(current.name)} (${current.role})`;
       refs.btnLogout.classList.remove('hidden');
       if (current.role === 'instructor' || current.role === 'admin') refs.navCreate.classList.remove('hidden'); else refs.navCreate.classList.add('hidden');
-      // Show header when user is logged in
-      if (header) header.style.display = 'flex';
     } else {
       refs.roleBadge.innerHTML = `<i class="fa-solid fa-user"></i> Guest`;
       refs.btnLogout.classList.add('hidden');
       refs.navCreate.classList.add('hidden');
-      // Hide header when user is logged out (on login page)
-      if (header && !refs.loginCard.classList.contains('hidden')) {
-        header.style.display = 'none';
-      } else if (header) {
-        header.style.display = 'flex';
-      }
     }
   }
   function hideAllPages() {
@@ -239,9 +236,6 @@ const API_BASE = "http://localhost:5000/api";
   function showLogin() { 
     hideAllPages(); 
     refs.loginCard.classList.remove('hidden');
-    // Hide header on login page
-    const header = document.querySelector('.site-header');
-    if (header) header.style.display = 'none';
     // Clear login form fields to prevent auto-fill
     if (refs.loginEmail) {
       refs.loginEmail.value = '';
