@@ -30,7 +30,6 @@ Question.belongsTo(Quiz);
 User.belongsToMany(Course, { through: Enrollment });
 Course.belongsToMany(User, { through: Enrollment });
 
-
 Enrollment.belongsTo(User);
 Enrollment.belongsTo(Course);
 

@@ -21,11 +21,21 @@ router.post('/courses', auth, role('admin'), async (req, res) => {
 // Admin views all courses
 router.get('/courses', auth, role('admin'), async (req, res) => {
   const courses = await Course.findAll({
-    include: [{
-      model: require('../models').User,
-      as: 'Instructor',
-      attributes: ['id', 'name', 'email']
-    }]
+    include: [
+      {
+        model: require('../models').User,
+        as: 'Instructor',
+        attributes: ['id', 'name', 'email']
+      },
+      {
+        model: Quiz,
+        attributes: ['id', 'title']
+      },
+      {
+        model: require('../models').Enrollment,
+        attributes: ['id']
+      }
+    ]
   });
   res.json(courses);
 });

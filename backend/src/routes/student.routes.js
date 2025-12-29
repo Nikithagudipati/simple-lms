@@ -327,7 +327,7 @@ router.get('/summary', auth, role('student'), async (req, res) => {
 
   const enrollments = await Enrollment.findAll({
     where: { UserId: userId },
-    include: Course
+    include: [{ model: Course, include: [{ model: require('../models').User, as: 'Instructor', attributes: ['id','name','email'] }] }]
   });
 
   // Recalculate progress for each enrollment
@@ -401,6 +401,10 @@ router.get('/summary', auth, role('student'), async (req, res) => {
   const completedCourses = enrollments.filter(e => e.completed).length;
   const pendingCourses = enrollments.length - completedCourses;
 
+  // total attempts and total time spent across enrollments
+  const totalAttempts = attempts.length || 0;
+  const totalTimeSpent = enrollments.reduce((acc, e) => acc + (e.timeSpent || 0), 0);
+
   // Get scores per course
   const courseScores = {};
   for (const enrollment of enrollments) {
@@ -447,6 +451,7 @@ router.get('/summary', auth, role('student'), async (req, res) => {
       id: e.Course.id,
       title: e.Course.title,
       description: e.Course.description,
+      instructor: e.Course.Instructor ? e.Course.Instructor.name : null,
       progress: e.progress || 0,
       completed: e.completed || false,
       timeSpent: e.timeSpent || 0,
@@ -456,8 +461,387 @@ router.get('/summary', auth, role('student'), async (req, res) => {
     })),
     completedCourses,
     pendingCourses,
-    averageScore: avgScore
+    averageScore: avgScore,
+    totalAttempts,
+    totalTimeSpent
   });
+});
+
+/* =========================
+   GET PENDING QUIZZES FOR DASHBOARD
+========================= */
+router.get('/pending-quizzes', auth, role('student'), async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    // Get all enrollments
+    const enrollments = await Enrollment.findAll({
+      where: { UserId: userId },
+      include: Course
+    });
+
+    const pendingQuizzes = [];
+
+    // For each course, find quizzes not yet taken
+    for (const enrollment of enrollments) {
+      const quizzes = await Quiz.findAll({
+        where: { CourseId: enrollment.CourseId },
+        include: [{ model: Question }]
+      });
+
+      for (const quiz of quizzes) {
+        // Check if already attempted
+        const attempted = await Attempt.findOne({
+          where: {
+            UserId: userId,
+            QuizId: quiz.id
+          }
+        });
+
+        // Only add if not yet attempted
+        if (!attempted) {
+          pendingQuizzes.push({
+            id: quiz.id,
+            title: quiz.title,
+            courseId: enrollment.CourseId,
+            courseName: enrollment.Course.title,
+            totalQuestions: quiz.Questions?.length || 0
+          });
+        }
+      }
+    }
+
+    res.json(pendingQuizzes);
+  } catch (error) {
+    console.error('Error fetching pending quizzes:', error);
+    res.status(500).json({ msg: 'Server error: ' + error.message });
+  }
+});
+
+/* =========================
+   GET QUIZ SCORES BY COURSE
+========================= */
+router.get('/quiz-scores-by-course', auth, role('student'), async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    // Get all enrollments
+    const enrollments = await Enrollment.findAll({
+      where: { UserId: userId },
+      include: Course
+    });
+
+    const quizScores = [];
+
+    // For each course, find quizzes and their scores
+    for (const enrollment of enrollments) {
+      const quizzes = await Quiz.findAll({
+        where: { CourseId: enrollment.CourseId },
+        include: [{ model: Question }]
+      });
+
+      for (const quiz of quizzes) {
+        // Check if attempted
+        const attempt = await Attempt.findOne({
+          where: {
+            UserId: userId,
+            QuizId: quiz.id
+          }
+        });
+
+        // Only add if attempted
+        if (attempt) {
+          const totalQuestions = quiz.Questions?.length || 0;
+          const percentage = totalQuestions > 0 
+            ? Math.round((attempt.score / totalQuestions) * 100)
+            : 0;
+
+          quizScores.push({
+            id: quiz.id,
+            quizTitle: quiz.title,
+            courseName: enrollment.Course.title,
+            score: attempt.score,
+            totalQuestions: totalQuestions,
+            percentage: percentage,
+            date: attempt.updatedAt || attempt.createdAt
+          });
+        }
+      }
+    }
+
+    // Sort by date descending
+    quizScores.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+    res.json(quizScores);
+  } catch (error) {
+    console.error('Error fetching quiz scores:', error);
+    res.status(500).json({ msg: 'Server error: ' + error.message });
+  }
+});
+
+/* =========================
+   MARK MATERIAL AS COMPLETED
+========================= */
+router.post('/materials/:materialId/complete', auth, role('student'), async (req, res) => {
+  try {
+    const { materialId } = req.params;
+    const userId = req.user.id;
+
+    const material = await CourseMaterial.findByPk(materialId);
+    if (!material) {
+      return res.status(404).json({ msg: 'Material not found' });
+    }
+
+    // Check if enrolled in course
+    const enrollment = await Enrollment.findOne({
+      where: {
+        UserId: userId,
+        CourseId: material.CourseId
+      }
+    });
+
+    if (!enrollment) {
+      return res.status(403).json({ msg: 'Not enrolled in this course' });
+    }
+
+    // Store completion in a simple way - update material status or create log
+    // For now, just acknowledge the completion
+    res.json({ 
+      msg: 'Material marked as completed',
+      materialId: materialId
+    });
+  } catch (error) {
+    console.error('Error marking material complete:', error);
+    res.status(500).json({ msg: 'Server error: ' + error.message });
+  }
+});
+
+/* =========================
+   GET COURSE MATERIALS (with enrollment check)
+========================= */
+router.get('/course/:courseId/materials', auth, role('student'), async (req, res) => {
+  try {
+    const { courseId } = req.params;
+    const userId = req.user.id;
+
+    // Check if enrolled in course
+    const enrollment = await Enrollment.findOne({
+      where: {
+        UserId: userId,
+        CourseId: courseId
+      }
+    });
+
+    if (!enrollment) {
+      return res.status(403).json({ msg: 'Not enrolled in this course' });
+    }
+
+    const materials = await CourseMaterial.findAll({
+      where: { CourseId: courseId }
+    });
+
+    res.json(materials);
+  } catch (error) {
+    console.error('Error fetching materials:', error);
+    res.status(500).json({ msg: 'Server error: ' + error.message });
+  }
+});
+
+/* =========================
+   GET QUIZ WITH QUESTIONS (fixed for CourseDetail)
+========================= */
+router.get('/quiz/:quizId', auth, role('student'), async (req, res) => {
+  try {
+    const { quizId } = req.params;
+    const userId = req.user.id;
+
+    const quiz = await Quiz.findByPk(quizId, {
+      include: [
+        { model: Question },
+        { model: Course }
+      ]
+    });
+
+    if (!quiz) {
+      return res.status(404).json({ msg: 'Quiz not found' });
+    }
+
+    // Check if enrolled in course
+    const enrollment = await Enrollment.findOne({
+      where: {
+        UserId: userId,
+        CourseId: quiz.CourseId
+      }
+    });
+
+    if (!enrollment) {
+      return res.status(403).json({ msg: 'Not enrolled in this course' });
+    }
+
+    // Check for previous attempt
+    const previousAttempt = await Attempt.findOne({
+      where: {
+        UserId: userId,
+        QuizId: quizId
+      }
+    });
+
+    const questions = quiz.Questions || [];
+    const totalQuestions = questions.length;
+
+    let previousScore = null;
+    let previousPercentage = null;
+    let message = null;
+
+    if (previousAttempt) {
+      const score = previousAttempt.score;
+      const percentage = totalQuestions > 0 ? Math.round((score / totalQuestions) * 100) : 0;
+      
+      if (percentage >= 100) {
+        message = 'You already scored 100% on this quiz. You may retake to try again.';
+      }
+      previousScore = score;
+      previousPercentage = percentage;
+    }
+
+    res.json({
+      id: quiz.id,
+      title: quiz.title,
+      courseId: quiz.CourseId,
+      questions: questions.map(q => ({
+        id: q.id,
+        question: q.question,
+        options: q.options,
+        correctAnswer: q.correctAnswer
+      })),
+      totalQuestions: totalQuestions,
+      previousAttempt: previousAttempt ? true : false,
+      previousScore: previousScore,
+      previousPercentage: previousPercentage,
+      message: message
+    });
+  } catch (error) {
+    console.error('Error fetching quiz:', error);
+    res.status(500).json({ msg: 'Server error: ' + error.message });
+  }
+});
+
+/* =========================
+   SUBMIT QUIZ ATTEMPT
+========================= */
+router.post('/quiz/:quizId/submit', auth, role('student'), async (req, res) => {
+  try {
+    const { quizId } = req.params;
+    const { answers } = req.body;
+    const userId = req.user.id;
+
+    // Get quiz with questions
+    const quiz = await Quiz.findByPk(quizId, {
+      include: [Question]
+    });
+
+    if (!quiz) {
+      return res.status(404).json({ msg: 'Quiz not found' });
+    }
+
+    // Check enrollment
+    const enrollment = await Enrollment.findOne({
+      where: {
+        UserId: userId,
+        CourseId: quiz.CourseId
+      }
+    });
+
+    if (!enrollment) {
+      return res.status(403).json({ msg: 'Not enrolled in this course' });
+    }
+
+    const questions = quiz.Questions || [];
+    const totalQuestions = questions.length;
+
+    // Check if already completed with 100%
+    const previousAttempt = await Attempt.findOne({
+      where: {
+        UserId: userId,
+        QuizId: quizId
+      }
+    });
+
+    if (previousAttempt) {
+      const prevPercentage = totalQuestions > 0 
+        ? Math.round((previousAttempt.score / totalQuestions) * 100)
+        : 0;
+      
+      if (prevPercentage >= 100) {
+        // Delete old attempt to allow retake
+        await previousAttempt.destroy();
+      } else {
+        // Allow retake - delete old attempt
+        await previousAttempt.destroy();
+      }
+    }
+
+    // Calculate score
+    let score = 0;
+    questions.forEach(q => {
+      const userAnswer = String(answers[q.id] || '').trim();
+      const correctAnswer = String(q.correctAnswer).trim();
+      if (userAnswer === correctAnswer) {
+        score++;
+      }
+    });
+
+    // Create new attempt
+    const attempt = await Attempt.create({
+      UserId: userId,
+      QuizId: quizId,
+      score: score
+    });
+
+    // Recalculate enrollment progress
+    const totalQuizzes = await Quiz.count({
+      where: { CourseId: quiz.CourseId }
+    });
+
+    if (totalQuizzes > 0) {
+      const courseQuizzes = await Quiz.findAll({
+        where: { CourseId: quiz.CourseId },
+        attributes: ['id']
+      });
+      const quizIds = courseQuizzes.map(q => q.id);
+
+      const attempts = await Attempt.findAll({
+        where: {
+          UserId: userId,
+          QuizId: quizIds
+        },
+        attributes: ['QuizId'],
+        raw: true
+      });
+
+      const uniqueQuizIds = [...new Set(attempts.map(a => a.QuizId))];
+      const completedQuizzesCount = uniqueQuizIds.length;
+      const progress = Math.round((completedQuizzesCount / totalQuizzes) * 100);
+
+      enrollment.progress = progress;
+      enrollment.completed = progress >= 100;
+      await enrollment.save();
+    }
+
+    const percentage = totalQuestions > 0 
+      ? Math.round((score / totalQuestions) * 100)
+      : 0;
+
+    res.json({
+      score: score,
+      totalQuestions: totalQuestions,
+      percentage: percentage,
+      passed: percentage >= 60
+    });
+  } catch (error) {
+    console.error('Error submitting quiz:', error);
+    res.status(500).json({ msg: 'Server error: ' + error.message });
+  }
 });
 
 

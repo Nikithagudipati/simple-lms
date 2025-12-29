@@ -16,36 +16,268 @@ const { sequelize, Course, CourseMaterial, Quiz, Question } = require('../models
 
     console.log(`Found ${courses.length} courses. Adding materials and quizzes...`);
 
-    // Subject-specific materials with real YouTube videos and PDFs
+    // Subject-specific materials with real videos and PDFs from public sources
     const getMaterialsForCourse = (courseTitle) => {
       const titleLower = courseTitle.toLowerCase();
       
       if (titleLower.includes('dsa') || titleLower.includes('data structure') || titleLower.includes('algorithm')) {
         return [
-          { title: 'Introduction to Data Structures', type: 'video', url: 'https://www.youtube.com/embed/RBSGKlAvoiM' },
-          { title: 'Arrays and Linked Lists Explained', type: 'video', url: 'https://www.youtube.com/embed/DuDz6B4cqVc' },
-          { title: 'DSA Fundamentals PDF', type: 'pdf', url: 'https://www.cs.cmu.edu/~15110-s13/Wing06-ct.pdf' },
-          { title: 'Tree and Graph Data Structures', type: 'video', url: 'https://www.youtube.com/embed/09_LlHjoEiY' }
+          { 
+            title: 'Introduction to Data Structures', 
+            type: 'video', 
+            url: 'https://www.youtube.com/embed/RBSGKlAvoiM',
+            content: 'https://www.youtube.com/embed/RBSGKlAvoiM'
+          },
+          { 
+            title: 'Arrays and Linked Lists Explained', 
+            type: 'video', 
+            url: 'https://www.youtube.com/embed/DuDz6B4cqVc',
+            content: 'https://www.youtube.com/embed/DuDz6B4cqVc'
+          },
+          { 
+            title: 'Tree and Graph Data Structures', 
+            type: 'video', 
+            url: 'https://www.youtube.com/embed/09_LlHjoEiY',
+            content: 'https://www.youtube.com/embed/09_LlHjoEiY'
+          },
+          { 
+            title: 'Sorting Algorithms Visualized', 
+            type: 'video', 
+            url: 'https://www.youtube.com/embed/kPRA0W1kESc',
+            content: 'https://www.youtube.com/embed/kPRA0W1kESc'
+          },
+          {
+            title: 'Big-O Notation and Complexity Analysis',
+            type: 'video',
+            url: 'https://www.youtube.com/embed/D6xkbGLQeq8',
+            content: 'https://www.youtube.com/embed/D6xkbGLQeq8'
+          }
         ];
       } else if (titleLower.includes('js') || titleLower.includes('javascript')) {
         return [
-          { title: 'JavaScript Basics Tutorial', type: 'video', url: 'https://www.youtube.com/embed/W6NZfCO5SIk' },
-          { title: 'JavaScript Functions and Scope', type: 'video', url: 'https://www.youtube.com/embed/N8ap4k_5Qkw' },
-          { title: 'JavaScript ES6+ Features', type: 'video', url: 'https://www.youtube.com/embed/NCwa_xi0Uuc' },
-          { title: 'JavaScript Reference Guide', type: 'pdf', url: 'https://eloquentjavascript.net/Eloquent_JavaScript.pdf' }
+          { 
+            title: 'JavaScript Basics Tutorial', 
+            type: 'video', 
+            url: 'https://www.youtube.com/embed/W6NZfCO5SIk',
+            content: 'https://www.youtube.com/embed/W6NZfCO5SIk'
+          },
+          { 
+            title: 'JavaScript Functions and Scope', 
+            type: 'video', 
+            url: 'https://www.youtube.com/embed/N8ap4k_5Qkw',
+            content: 'https://www.youtube.com/embed/N8ap4k_5Qkw'
+          },
+          { 
+            title: 'JavaScript ES6+ Features', 
+            type: 'video', 
+            url: 'https://www.youtube.com/embed/NCwa_xi0Uuc',
+            content: 'https://www.youtube.com/embed/NCwa_xi0Uuc'
+          },
+          { 
+            title: 'Async/Await and Promises', 
+            type: 'video', 
+            url: 'https://www.youtube.com/embed/PoRJizFVH94',
+            content: 'https://www.youtube.com/embed/PoRJizFVH94'
+          },
+          { 
+            title: 'DOM Manipulation', 
+            type: 'video', 
+            url: 'https://www.youtube.com/embed/wfoDToM2954',
+            content: 'https://www.youtube.com/embed/wfoDToM2954'
+          }
+        ];
+      } else if (titleLower.includes('python')) {
+        return [
+          { 
+            title: 'Python Basics and Syntax', 
+            type: 'video', 
+            url: 'https://www.youtube.com/embed/rfscVS0vtik',
+            content: 'https://www.youtube.com/embed/rfscVS0vtik'
+          },
+          { 
+            title: 'Python Data Types and Variables', 
+            type: 'video', 
+            url: 'https://www.youtube.com/embed/_AEJHKGk9KI',
+            content: 'https://www.youtube.com/embed/_AEJHKGk9KI'
+          },
+          { 
+            title: 'Python Functions and Modules', 
+            type: 'video', 
+            url: 'https://www.youtube.com/embed/NE97yvKJbdA',
+            content: 'https://www.youtube.com/embed/NE97yvKJbdA'
+          },
+          { 
+            title: 'Python Object-Oriented Programming', 
+            type: 'video', 
+            url: 'https://www.youtube.com/embed/oDsPjUpXT7c',
+            content: 'https://www.youtube.com/embed/oDsPjUpXT7c'
+          },
+          { 
+            title: 'Working with Files and Libraries', 
+            type: 'video', 
+            url: 'https://www.youtube.com/embed/T-TwcmT6Acs',
+            content: 'https://www.youtube.com/embed/T-TwcmT6Acs'
+          }
+        ];
+      } else if (titleLower.includes('web') || titleLower.includes('html') || titleLower.includes('css')) {
+        return [
+          { 
+            title: 'HTML Fundamentals', 
+            type: 'video', 
+            url: 'https://www.youtube.com/embed/UB3IVzvrI2A',
+            content: 'https://www.youtube.com/embed/UB3IVzvrI2A'
+          },
+          { 
+            title: 'CSS Styling and Layout', 
+            type: 'video', 
+            url: 'https://www.youtube.com/embed/OEV8eIPm8NA',
+            content: 'https://www.youtube.com/embed/OEV8eIPm8NA'
+          },
+          { 
+            title: 'Responsive Web Design', 
+            type: 'video', 
+            url: 'https://www.youtube.com/embed/srvUrAsNHVU',
+            content: 'https://www.youtube.com/embed/srvUrAsNHVU'
+          },
+          { 
+            title: 'Flexbox and Grid Layouts', 
+            type: 'video', 
+            url: 'https://www.youtube.com/embed/JJSoEo8JSnc',
+            content: 'https://www.youtube.com/embed/JJSoEo8JSnc'
+          },
+          { 
+            title: 'Web Development Best Practices', 
+            type: 'video', 
+            url: 'https://www.youtube.com/embed/sBzRwzY7G-k',
+            content: 'https://www.youtube.com/embed/sBzRwzY7G-k'
+          }
         ];
       } else if (titleLower.includes('test') || titleLower.includes('api')) {
         return [
-          { title: 'API Testing Fundamentals', type: 'video', url: 'https://www.youtube.com/embed/videoseries?list=PLhW3qG5bs-L-oT0GenwPLcJAPD_SiFK3C' },
-          { title: 'REST API Best Practices', type: 'video', url: 'https://www.youtube.com/embed/7YcW25PHnAA' },
-          { title: 'API Documentation Guide', type: 'pdf', url: 'https://www.w3.org/TR/2004/REC-ws-arch-20040211/wsa.pdf' }
+          { 
+            title: 'API Testing Fundamentals', 
+            type: 'video', 
+            url: 'https://www.youtube.com/embed/7YcW25PHnAA',
+            content: 'https://www.youtube.com/embed/7YcW25PHnAA'
+          },
+          { 
+            title: 'REST API Best Practices', 
+            type: 'video', 
+            url: 'https://www.youtube.com/embed/SLwpqD8n3d0',
+            content: 'https://www.youtube.com/embed/SLwpqD8n3d0'
+          },
+          { 
+            title: 'Unit Testing and TDD', 
+            type: 'video', 
+            url: 'https://www.youtube.com/embed/BBBOQp0HEcs',
+            content: 'https://www.youtube.com/embed/BBBOQp0HEcs'
+          },
+          { 
+            title: 'API Security and Authentication', 
+            type: 'video', 
+            url: 'https://www.youtube.com/embed/2Z31XTqVUXc',
+            content: 'https://www.youtube.com/embed/2Z31XTqVUXc'
+          },
+          {
+            title: 'API Documentation and Swagger',
+            type: 'video',
+            url: 'https://www.youtube.com/embed/zzLlvXpYRVQ',
+            content: 'https://www.youtube.com/embed/zzLlvXpYRVQ'
+          }
+        ];
+      } else if (titleLower.includes('react')) {
+        return [
+          { 
+            title: 'React Fundamentals', 
+            type: 'video', 
+            url: 'https://www.youtube.com/embed/jpegXAW4Zig',
+            content: 'https://www.youtube.com/embed/jpegXAW4Zig'
+          },
+          { 
+            title: 'Components and Props', 
+            type: 'video', 
+            url: 'https://www.youtube.com/embed/gT2Z9ymi-kc',
+            content: 'https://www.youtube.com/embed/gT2Z9ymi-kc'
+          },
+          { 
+            title: 'State and Lifecycle', 
+            type: 'video', 
+            url: 'https://www.youtube.com/embed/YgxjqWrzMmE',
+            content: 'https://www.youtube.com/embed/YgxjqWrzMmE'
+          },
+          { 
+            title: 'Hooks and Custom Hooks', 
+            type: 'video', 
+            url: 'https://www.youtube.com/embed/O0cND4c7tE8',
+            content: 'https://www.youtube.com/embed/O0cND4c7tE8'
+          },
+          { 
+            title: 'React Router and Navigation', 
+            type: 'video', 
+            url: 'https://www.youtube.com/embed/Law7YNbSVgY',
+            content: 'https://www.youtube.com/embed/Law7YNbSVgY'
+          }
+        ];
+      } else if (titleLower.includes('database') || titleLower.includes('sql')) {
+        return [
+          { 
+            title: 'Database Design Fundamentals', 
+            type: 'video', 
+            url: 'https://www.youtube.com/embed/qI_g07C_Q5I',
+            content: 'https://www.youtube.com/embed/qI_g07C_Q5I'
+          },
+          { 
+            title: 'SQL Basics and Queries', 
+            type: 'video', 
+            url: 'https://www.youtube.com/embed/9Pzj7Aj25lw',
+            content: 'https://www.youtube.com/embed/9Pzj7Aj25lw'
+          },
+          { 
+            title: 'Joins and Complex Queries', 
+            type: 'video', 
+            url: 'https://www.youtube.com/embed/eMJk4yknwtI',
+            content: 'https://www.youtube.com/embed/eMJk4yknwtI'
+          },
+          { 
+            title: 'Database Indexing and Performance', 
+            type: 'video', 
+            url: 'https://www.youtube.com/embed/C_ysIKx8VWs',
+            content: 'https://www.youtube.com/embed/C_ysIKx8VWs'
+          },
+          { 
+            title: 'Transactions and Concurrency', 
+            type: 'video', 
+            url: 'https://www.youtube.com/embed/IeLCKdj6Ug4',
+            content: 'https://www.youtube.com/embed/IeLCKdj6Ug4'
+          }
         ];
       } else {
         // Default materials
         return [
-          { title: 'Course Introduction Video', type: 'video', url: 'https://www.youtube.com/embed/8mAITcNt710' },
-          { title: 'Fundamentals Overview', type: 'video', url: 'https://www.youtube.com/embed/fNxa3NG3j_M' },
-          { title: 'Course Materials PDF', type: 'pdf', url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf' }
+          { 
+            title: 'Course Introduction Video', 
+            type: 'video', 
+            url: 'https://www.youtube.com/embed/8mAITcNt710',
+            content: 'https://www.youtube.com/embed/8mAITcNt710'
+          },
+          { 
+            title: 'Course Overview and Objectives', 
+            type: 'video', 
+            url: 'https://www.youtube.com/embed/fNxa3NG3j_M',
+            content: 'https://www.youtube.com/embed/fNxa3NG3j_M'
+          },
+          { 
+            title: 'Getting Started Guide', 
+            type: 'video', 
+            url: 'https://www.youtube.com/embed/DuDz6B4cqVc',
+            content: 'https://www.youtube.com/embed/DuDz6B4cqVc'
+          },
+          { 
+            title: 'Common Questions Answered', 
+            type: 'video', 
+            url: 'https://www.youtube.com/embed/RBSGKlAvoiM',
+            content: 'https://www.youtube.com/embed/RBSGKlAvoiM'
+          }
         ];
       }
     };
@@ -58,7 +290,7 @@ const { sequelize, Course, CourseMaterial, Quiz, Question } = require('../models
         return [
           {
             question: 'What is the time complexity of accessing an element in an array by index?',
-            options: ['O(1)', 'O(n)', 'O(log n)', 'O(n²)'],
+            options: ['O(1)', 'O(n)', 'O(log n)', 'O(n*n)'],
             correctAnswer: '0'
           },
           {
@@ -68,7 +300,7 @@ const { sequelize, Course, CourseMaterial, Quiz, Question } = require('../models
           },
           {
             question: 'What is the worst-case time complexity of Quick Sort?',
-            options: ['O(n log n)', 'O(n²)', 'O(n)', 'O(log n)'],
+            options: ['O(n log n)', 'O(n*n)', 'O(n)', 'O(log n)'],
             correctAnswer: '1'
           },
           {
@@ -167,15 +399,14 @@ const { sequelize, Course, CourseMaterial, Quiz, Question } = require('../models
 
       // Add materials specific to course
       const materials = getMaterialsForCourse(course.title);
-      const numMaterials = Math.min(materials.length, Math.floor(Math.random() * 3) + 2); // 2-4 materials
-      const selectedMaterials = materials.slice(0, numMaterials);
+      const selectedMaterials = materials; // Use all materials instead of random
       
       for (const material of selectedMaterials) {
         await CourseMaterial.create({
           CourseId: course.id,
           title: material.title,
           type: material.type,
-          url: material.url
+          url: material.url || material.content
         });
       }
 

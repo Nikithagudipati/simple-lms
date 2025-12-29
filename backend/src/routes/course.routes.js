@@ -1,5 +1,5 @@
 const router = require('express').Router();
-const { Course, CourseMaterial, Quiz, Question, User } = require('../models');
+const { Course, CourseMaterial, Quiz, Question, User, Enrollment } = require('../models');
 
 router.get('/', async (req, res) => {
   const courses = await Course.findAll({
@@ -46,7 +46,8 @@ router.get('/:id', async (req, res) => {
         model: User,
         as: 'Instructor',
         attributes: ['id', 'name', 'email']
-      }
+      },
+      // Note: Enrollment include removed to avoid schema mismatches on some DBs
     ]
   });
 
