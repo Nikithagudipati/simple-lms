@@ -232,43 +232,9 @@ function CourseDetail() {
         </div>
       )}
 
-      {isEnrolled && quizzes.length > 0 && (
-        <div className="quizzes-section">
-          <h3 className="section-title">📝 Quizzes</h3>
-          <div className="quizzes-grid">
-            {quizzes.map(quiz => (
-              <div key={quiz.id} className="quiz-card">
-                <div className="quiz-header">
-                  <h4>{quiz.title}</h4>
-                  <span className="quiz-meta">{quiz.Questions?.length || 0} Questions</span>
-                </div>
-                <div className="quiz-body">
-                  <p className="quiz-description">Test your knowledge on this topic</p>
-                  <button
-                    className="btn primary quiz-btn"
-                    onClick={() => handleQuizClick(quiz)}
-                    disabled={quizLoading}
-                  >
-                    {quizLoading ? (
-                      <>
-                        <i className="fa-solid fa-spinner fa-spin"></i> Loading...
-                      </>
-                    ) : (
-                      <>
-                        <i className="fa-solid fa-play"></i> Take Quiz
-                      </>
-                    )}
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {!isEnrolled && current?.role === 'student' && materials.length === 0 && quizzes.length === 0 && (
+      {!isEnrolled && current?.role === 'student' && materials.length === 0 && (
         <div className="empty-state">
-          <p>📚 Enroll to see course materials and quizzes</p>
+          <p>📚 Enroll to see course materials</p>
         </div>
       )}
 
