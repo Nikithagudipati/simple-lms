@@ -1240,16 +1240,83 @@ textarea {
 
 /* Student Quiz Card - Simple View */
 .student-quiz-card {
-  padding: 20px 24px;
+  padding: 24px;
+  background: rgba(255, 214, 10, 0.05);
+  border: 2px solid rgba(255, 214, 10, 0.2);
+  box-shadow: none;
+  position: relative;
+  overflow: visible;
+}
+
+.student-quiz-card::before {
+  display: none;
+}
+
+.student-quiz-card:hover {
+  border-color: #ffd60a;
+  box-shadow: 0 4px 16px rgba(255, 214, 10, 0.15);
+  transform: none;
 }
 
 .student-quiz-card .quiz-header {
   margin-bottom: 20px;
+  padding: 0;
+  background: transparent;
+  border-bottom: 1px solid rgba(255, 214, 10, 0.1);
+  padding-bottom: 16px;
+  position: relative;
+  z-index: 1;
+}
+
+.student-quiz-card .quiz-header h4 {
+  font-size: 1.3rem;
+  margin-bottom: 0;
+  color: #ffd60a;
+  text-shadow: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.student-quiz-card .quiz-questions-count {
+  background: #ffd60a;
+  border: none;
+  color: #000;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  box-shadow: none;
 }
 
 .student-quiz-card .take-quiz-btn {
   max-width: 100%;
-  margin-top: 0;
+  margin: 0;
+  margin-top: 16px;
+  padding: 14px 32px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  background: linear-gradient(135deg, #ffd60a 0%, #ffb700 100%);
+  color: #000;
+  border: none;
+  border-radius: 8px;
+  box-shadow: none;
+  position: relative;
+  z-index: 1;
+  transition: all 0.3s ease;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.student-quiz-card .take-quiz-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(255, 214, 10, 0.4);
+  background: linear-gradient(135deg, #ffde3a 0%, #ffc800 100%);
+}
+
+.student-quiz-card .take-quiz-btn:active:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(255, 214, 10, 0.3);
 }
 
 /* Quiz Modal */
