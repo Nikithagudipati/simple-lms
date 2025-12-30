@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { apiCreateCourse, apiGetInstructorCourses, apiCreateQuiz, apiUpdateCourse, apiDeleteCourse, apiDeleteQuiz } from '../../utils/api';
+import { apiCreateCourse, apiGetInstructorCourses, apiCreateQuiz, apiUpdateCourse, apiDeleteCourse, apiDeleteQuiz, apiGetAllCourses, apiAdminCreateCourse, apiAdminUpdateCourse } from '../../utils/api';
 
 function CreateCourse() {
   const { current } = useAuth();
@@ -28,7 +28,13 @@ function CreateCourse() {
   const loadCourses = async () => {
     try {
       setLoading(true);
-      const response = await apiGetInstructorCourses();
+      // If admin, fetch all courses; else fetch instructor courses
+      let response;
+      if (current?.role === 'admin') {
+        response = await apiGetAllCourses();
+      } else {
+        response = await apiGetInstructorCourses();
+      }
       setCourses(response.data || []);
     } catch (err) {
       setError('Failed to load courses');
@@ -48,7 +54,12 @@ function CreateCourse() {
     try {
       setError('');
       setSuccess('');
-      const response = await apiCreateCourse(formData);
+      // If admin, use admin endpoint; else use instructor endpoint
+      if (current?.role === 'admin') {
+        await apiAdminCreateCourse(formData);
+      } else {
+        await apiCreateCourse(formData);
+      }
       setSuccess('Course created successfully!');
       setFormData({ title: '', description: '', level: 'intermediate' });
       setShowCreateForm(false);
@@ -146,7 +157,7 @@ function CreateCourse() {
                 <p>{course.description}</p>
                 <div style={{ marginTop: 'auto' }}>
                   <p className="small muted">{course.Quizzes?.length || 0} quizzes</p>
-                  <div className="course-actions">
+                  <div className="course-actions" style={{ display: 'flex', gap: '8px' }}>
                     <button
                       className="btn small secondary"
                       onClick={() => handleDeleteCourse(course.id)}

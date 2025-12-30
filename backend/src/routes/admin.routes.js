@@ -20,24 +20,25 @@ router.post('/courses', auth, role('admin'), async (req, res) => {
 
 // Admin views all courses
 router.get('/courses', auth, role('admin'), async (req, res) => {
-  const courses = await Course.findAll({
-    include: [
-      {
-        model: require('../models').User,
-        as: 'Instructor',
-        attributes: ['id', 'name', 'email']
-      },
-      {
-        model: Quiz,
-        attributes: ['id', 'title']
-      },
-      {
-        model: require('../models').Enrollment,
-        attributes: ['id']
-      }
-    ]
-  });
-  res.json(courses);
+  try {
+    const courses = await Course.findAll({
+      include: [
+        {
+          model: require('../models').User,
+          as: 'Instructor',
+          attributes: ['id', 'name', 'email']
+        },
+        {
+          model: Quiz,
+          attributes: ['id', 'title']
+        }
+      ]
+    });
+    res.json(courses);
+  } catch (err) {
+    console.error('Error fetching courses:', err);
+    res.status(500).json({ msg: 'Failed to fetch courses' });
+  }
 });
 
 // Admin views all users
@@ -227,13 +228,65 @@ router.get('/analytics', auth, role('admin'), async (req, res) => {
     ]
   });
 
+  // role breakdown
+  const User = require('../models').User;
+  const studentsCount = await User.count({ where: { role: 'student' } });
+  const instructorsCount = await User.count({ where: { role: 'instructor' } });
+  const adminsCount = await User.count({ where: { role: 'admin' } });
+
   res.json({
     totalUsers,
     totalCourses,
     totalEnrollments,
     totalQuizAttempts: totalAttempts,
-    averageQuizScore: avgScore[0].dataValues.avgScore || 0
+    averageQuizScore: avgScore[0].dataValues.avgScore || 0,
+    students: studentsCount,
+    instructors: instructorsCount,
+    admins: adminsCount
   });
+});
+
+// Return role breakdown (students, instructors, admins)
+router.get('/analytics/roles', auth, role('admin'), async (req, res) => {
+  const User = require('../models').User;
+  const students = await User.count({ where: { role: 'student' } });
+  const instructors = await User.count({ where: { role: 'instructor' } });
+  const admins = await User.count({ where: { role: 'admin' } });
+
+  res.json({ students, instructors, admins });
+});
+
+// Admin reset password for user
+router.post('/users/:id/reset-password', auth, role('admin'), async (req, res) => {
+  const { newPassword } = req.body;
+  if (!newPassword) return res.status(400).json({ msg: 'New password is required' });
+
+  const bcrypt = require('bcrypt');
+  const User = require('../models').User;
+  const user = await User.findByPk(req.params.id);
+  if (!user) return res.status(404).json({ msg: 'User not found' });
+
+  user.password = await bcrypt.hash(newPassword, 10);
+  await user.save();
+
+  res.json({ msg: 'Password reset successfully' });
+});
+
+// Admin impersonate user (returns a token for that user)
+router.post('/impersonate/:id', auth, role('admin'), async (req, res) => {
+  const User = require('../models').User;
+  const jwt = require('jsonwebtoken');
+
+  const user = await User.findByPk(req.params.id);
+  if (!user) return res.status(404).json({ msg: 'User not found' });
+
+  const token = jwt.sign(
+    { id: user.id, role: user.role },
+    process.env.JWT_SECRET,
+    { expiresIn: '1d' }
+  );
+
+  res.json({ token, id: user.id, role: user.role, name: user.name });
 });
 
 /* =========================

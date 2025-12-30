@@ -68,6 +68,9 @@ export const apiGetPendingQuizzes = () =>
 export const apiCreateUser = (userData) =>
   apiClient.post('/admin/users', userData);
 
+export const apiImpersonateUser = (userId) =>
+  apiClient.post(`/admin/impersonate/${userId}`);
+
 export const apiDeleteQuiz = (quizId) =>
   apiClient.delete(`/quizzes/${quizId}`);
 
@@ -91,5 +94,24 @@ export const apiMarkMaterialAsCompleted = (materialId) =>
 
 export const apiGetCourseProgress = (courseId) =>
   apiClient.get(`/student/course-progress/${courseId}`);
+
+// Admin course endpoints
+export const apiAdminCreateCourse = (courseData) =>
+  apiClient.post('/admin/courses', courseData);
+
+export const apiAdminUpdateCourse = (courseId, courseData) =>
+  apiClient.put(`/admin/courses/${courseId}`, courseData);
+
+export const apiAdminCreateQuiz = (quizData) =>
+  apiClient.post('/admin/quizzes', quizData);
+
+export const apiAdminUpdateQuiz = (quizId, quizData) =>
+  apiClient.put(`/admin/quizzes/${quizId}`, quizData);
+
+export const apiAdminDeleteQuiz = (quizId) =>
+  apiClient.delete(`/admin/quizzes/${quizId}`);
+
+export const apiAdminGetQuiz = (quizId) =>
+  apiClient.get(`/admin/quizzes/${quizId}`);
 
 export default apiClient;
