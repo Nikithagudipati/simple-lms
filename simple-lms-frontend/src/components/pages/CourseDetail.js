@@ -238,6 +238,99 @@ function CourseDetail() {
         </div>
       )}
 
+      {quizzes.length > 0 && (current?.role === 'admin' || current?.role === 'instructor') && (
+        <div className="quizzes-section">
+          <h3 className="section-title">📝 Quizzes</h3>
+          <div className="quizzes-list">
+            {quizzes.map(quiz => (
+              <div key={quiz.id} className="quiz-card">
+                <div className="quiz-header">
+                  <h4>{quiz.title}</h4>
+                  <span className="quiz-questions-count">
+                    {quiz.Questions?.length || 0} questions
+                  </span>
+                </div>
+                {quiz.Questions && quiz.Questions.length > 0 && (
+                  <div className="quiz-questions-preview">
+                    {quiz.Questions.map((question, idx) => {
+                      const options = Array.isArray(question.options)
+                        ? question.options
+                        : (typeof question.options === 'string'
+                            ? (() => {
+                                try { return JSON.parse(question.options); }
+                                catch { return question.options.split(','); }
+                              })()
+                            : []);
+                      
+                      // Ensure correctAnswer is a number for comparison
+                      const correctAnswerIndex = typeof question.correctAnswer === 'string' 
+                        ? parseInt(question.correctAnswer, 10) 
+                        : question.correctAnswer;
+                      
+                      return (
+                        <div key={question.id} className="question-preview">
+                          <div className="question-preview-header">
+                            <span className="question-number">Q{idx + 1}</span>
+                          </div>
+                          <p className="question-text">{question.question}</p>
+                          <div className="options-list">
+                            {options.map((option, optIdx) => {
+                              const isCorrect = optIdx === correctAnswerIndex;
+                              return (
+                                <div key={optIdx} className={`option-item ${isCorrect ? 'correct-option' : ''}`}>
+                                  <span className={`option-indicator ${isCorrect ? 'correct' : ''}`}>
+                                    {String.fromCharCode(65 + optIdx)}
+                                  </span>
+                                  <span className="option-text">{option}</span>
+                                  {isCorrect && (
+                                    <span className="correct-badge">✓ Correct Answer</span>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {quizzes.length > 0 && current?.role === 'student' && isEnrolled && (
+        <div className="quizzes-section">
+          <h3 className="section-title">📝 Quizzes</h3>
+          <div className="quizzes-list">
+            {quizzes.map(quiz => (
+              <div key={quiz.id} className="quiz-card student-quiz-card">
+                <div className="quiz-header">
+                  <h4>{quiz.title}</h4>
+                  <span className="quiz-questions-count">
+                    {quiz.Questions?.length || 0} questions
+                  </span>
+                </div>
+                <button
+                  className="btn primary take-quiz-btn"
+                  onClick={() => handleQuizClick(quiz)}
+                  disabled={quizLoading}
+                >
+                  {quizLoading ? 'Loading...' : 'Take Quiz'}
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {!isEnrolled && current?.role === 'student' && quizzes.length === 0 && (
+        <div className="empty-state">
+          <p>📝 Enroll to see quizzes</p>
+        </div>
+      )}
+
       {selectedQuiz && (
         <div className="modal-overlay" onClick={() => setSelectedQuiz(null)}>
           <div className="quiz-modal" onClick={(e) => e.stopPropagation()}>
