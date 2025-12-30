@@ -5,7 +5,7 @@ import { apiCreateCourse, apiGetInstructorCourses, apiCreateQuiz, apiUpdateCours
 function CreateCourse() {
   const { current } = useAuth();
   const [courses, setCourses] = useState([]);
-  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [showCreateForm, setShowCreateForm] = useState(true);
   const [editingCourse, setEditingCourse] = useState(null);
   const [formData, setFormData] = useState({
     title: '',
@@ -102,76 +102,42 @@ function CreateCourse() {
       {error && <p className="error-msg">{error}</p>}
       {success && <p className="success-msg">{success}</p>}
 
-      {!showCreateForm ? (
-        <button className="btn" onClick={() => setShowCreateForm(true)} style={{ marginBottom: '16px' }}>
-          <i className="fa-solid fa-plus"></i> New Course
-        </button>
-      ) : (
-        <div className="create-quiz" style={{ marginBottom: '16px' }}>
-          <h3>Create New Course</h3>
-          <form onSubmit={handleCreateCourse}>
-            <label className="label">Course Title</label>
-            <input
-              type="text"
-              placeholder="Enter course title"
-              value={formData.title}
-              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-            />
-            <label className="label">Description</label>
-            <textarea
-              placeholder="Enter course description"
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-            ></textarea>
-            <label className="label">Level</label>
-            <select
-              value={formData.level}
-              onChange={(e) => setFormData({ ...formData, level: e.target.value })}
+      <div className="create-quiz" style={{ marginBottom: '16px' }}>
+        <h3>Create New Course</h3>
+        <form onSubmit={handleCreateCourse}>
+          <label className="label">Course Title</label>
+          <input
+            type="text"
+            placeholder="Enter course title"
+            value={formData.title}
+            onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+          />
+          <label className="label">Description</label>
+          <textarea
+            placeholder="Enter course description"
+            value={formData.description}
+            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+          ></textarea>
+          <label className="label">Level</label>
+          <select
+            value={formData.level}
+            onChange={(e) => setFormData({ ...formData, level: e.target.value })}
+          >
+            <option value="beginner">Beginner</option>
+            <option value="intermediate">Intermediate</option>
+            <option value="advanced">Advanced</option>
+          </select>
+          <div style={{ marginTop: '12px', display: 'flex', gap: '8px' }}>
+            <button type="submit" className="btn">Create Course</button>
+            <button
+              type="button"
+              className="btn secondary"
+              onClick={() => setFormData({ title: '', description: '', level: 'intermediate' })}
             >
-              <option value="beginner">Beginner</option>
-              <option value="intermediate">Intermediate</option>
-              <option value="advanced">Advanced</option>
-            </select>
-            <div style={{ marginTop: '12px', display: 'flex', gap: '8px' }}>
-              <button type="submit" className="btn">Create Course</button>
-              <button
-                type="button"
-                className="btn secondary"
-                onClick={() => setShowCreateForm(false)}
-              >
-                Cancel
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
-
-      <div style={{ marginTop: '24px' }}>
-        <h3>Your Courses</h3>
-        {courses.length > 0 ? (
-          <div className="grid">
-            {courses.map(course => (
-              <div key={course.id} className="course-card">
-                <h4>{course.title}</h4>
-                <p className="small muted">{course.level}</p>
-                <p>{course.description}</p>
-                <div style={{ marginTop: 'auto' }}>
-                  <p className="small muted">{course.Quizzes?.length || 0} quizzes</p>
-                  <div className="course-actions" style={{ display: 'flex', gap: '8px' }}>
-                    <button
-                      className="btn small secondary"
-                      onClick={() => handleDeleteCourse(course.id)}
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
+              Clear
+            </button>
           </div>
-        ) : (
-          <p className="muted">No courses created yet</p>
-        )}
+        </form>
       </div>
     </section>
   );
