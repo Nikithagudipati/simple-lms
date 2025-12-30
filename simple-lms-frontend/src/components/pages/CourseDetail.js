@@ -64,6 +64,9 @@ function CourseDetail() {
           console.error('Could not fetch enrollment status:', e);
           setIsEnrolled(false);
         }
+      } else if (current?.role === 'admin' || current?.role === 'instructor') {
+        // Admin and instructors can view all materials without enrollment
+        setIsEnrolled(true);
       }
     } catch (err) {
       setError('Failed to load course');
@@ -118,6 +121,7 @@ function CourseDetail() {
       setError('You must be enrolled to view materials.');
       return;
     }
+    // Admin and instructor can always view
     setSelectedMaterial(material);
   };
 
