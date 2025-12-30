@@ -31,6 +31,10 @@ router.get('/courses', auth, role('admin'), async (req, res) => {
         {
           model: Quiz,
           attributes: ['id', 'title']
+        },
+        {
+          model: require('../models').CourseMaterial,
+          attributes: ['id', 'title', 'type', 'url']
         }
       ]
     });
