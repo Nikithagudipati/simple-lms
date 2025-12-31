@@ -645,52 +645,6 @@ function AdminPanel() {
           {/* Courses Tab */}
           {activeTab === 'courses' && (
             <div>
-              <div style={{ marginBottom: '16px' }}>
-                <button className="btn" onClick={() => { setShowCreateCourseForm(!showCreateCourseForm); setEditingCourse(null); setCourseFormData({ title: '', description: '', instructorId: '', level: 'Beginner' }); }}>
-                  <i className="fa-solid fa-plus"></i> Create Course
-                </button>
-              </div>
-
-              {showCreateCourseForm && (
-                <div className="create-quiz" style={{ marginBottom: '24px' }}>
-                  <h3>{editingCourse ? 'Edit Course' : 'Create New Course'}</h3>
-                  <form onSubmit={editingCourse ? handleEditCourse : handleCreateCourse}>
-                    <label className="label">Course Title</label>
-                    <input
-                      type="text"
-                      placeholder="Enter course title"
-                      value={courseFormData.title}
-                      onChange={(e) => setCourseFormData({ ...courseFormData, title: e.target.value })}
-                    />
-                    <label className="label">Description</label>
-                    <textarea
-                      placeholder="Enter course description"
-                      value={courseFormData.description}
-                      onChange={(e) => setCourseFormData({ ...courseFormData, description: e.target.value })}
-                    ></textarea>
-                    <label className="label">Level</label>
-                    <select
-                      value={courseFormData.level}
-                      onChange={(e) => setCourseFormData({ ...courseFormData, level: e.target.value })}
-                    >
-                      <option value="Beginner">Beginner</option>
-                      <option value="Intermediate">Intermediate</option>
-                      <option value="Advanced">Advanced</option>
-                    </select>
-                    <div style={{ marginTop: '12px', display: 'flex', gap: '8px' }}>
-                      <button type="submit" className="btn">{editingCourse ? 'Update Course' : 'Create Course'}</button>
-                      <button
-                        type="button"
-                        className="btn secondary"
-                        onClick={() => { setShowCreateCourseForm(false); setEditingCourse(null); }}
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  </form>
-                </div>
-              )}
-
               <h3>Courses List</h3>
               {courses.length > 0 ? (
                 <div className="grid">
