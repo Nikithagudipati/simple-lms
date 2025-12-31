@@ -224,6 +224,7 @@ router.get('/analytics', auth, role('admin'), async (req, res) => {
   const totalUsers = await require('../models').User.count();
   const totalCourses = await Course.count();
   const totalEnrollments = await require('../models').Enrollment.count();
+  const totalQuizzes = await Quiz.count();
   const totalAttempts = await require('../models').Attempt.count();
 
   const avgScore = await require('../models').Attempt.findAll({
@@ -242,6 +243,7 @@ router.get('/analytics', auth, role('admin'), async (req, res) => {
     totalUsers,
     totalCourses,
     totalEnrollments,
+    totalQuizzes,
     totalQuizAttempts: totalAttempts,
     averageQuizScore: avgScore[0].dataValues.avgScore || 0,
     students: studentsCount,
@@ -258,6 +260,70 @@ router.get('/analytics/roles', auth, role('admin'), async (req, res) => {
   const admins = await User.count({ where: { role: 'admin' } });
 
   res.json({ students, instructors, admins });
+});
+
+/* =========================
+   ADMIN: GET ENROLLMENTS BY COURSE
+========================= */
+router.get('/courses/:courseId/enrollments', auth, role('admin'), async (req, res) => {
+  try {
+    const courseId = req.params.courseId;
+    const Enrollment = require('../models').Enrollment;
+    const User = require('../models').User;
+
+    const enrollments = await Enrollment.findAll({
+      where: { CourseId: courseId },
+      include: [{
+        model: User,
+        attributes: ['id', 'name', 'email', 'role']
+      }],
+      order: [['createdAt', 'DESC']]
+    });
+
+    res.json(enrollments);
+  } catch (err) {
+    console.error('Error fetching enrollments:', err);
+    res.status(500).json({ msg: 'Failed to fetch enrollments' });
+  }
+});
+
+/* =========================
+   ADMIN: GET COURSES BY INSTRUCTOR
+========================= */
+router.get('/instructors/:instructorId/courses', auth, role('admin'), async (req, res) => {
+  try {
+    const instructorId = req.params.instructorId;
+    const Enrollment = require('../models').Enrollment;
+    
+    const courses = await Course.findAll({
+      where: { instructorId },
+      include: [
+        {
+          model: Quiz,
+          attributes: ['id', 'title']
+        },
+        {
+          model: CourseMaterial,
+          attributes: ['id', 'title', 'type']
+        }
+      ],
+      order: [['createdAt', 'DESC']]
+    });
+
+    // Manually count enrollments for each course
+    const coursesWithEnrollments = await Promise.all(courses.map(async (course) => {
+      const enrollmentCount = await Enrollment.count({ where: { CourseId: course.id } });
+      return {
+        ...course.toJSON(),
+        Enrollments: Array(enrollmentCount).fill({ id: null }) // Create array with length for frontend
+      };
+    }));
+
+    res.json(coursesWithEnrollments);
+  } catch (err) {
+    console.error('Error fetching instructor courses:', err);
+    res.status(500).json({ msg: 'Failed to fetch courses' });
+  }
 });
 
 // Admin reset password for user

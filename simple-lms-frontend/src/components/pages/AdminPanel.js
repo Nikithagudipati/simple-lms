@@ -13,7 +13,9 @@ import {
   apiAdminUpdateCourse,
   apiAdminCreateQuiz,
   apiAdminUpdateQuiz,
-  apiAdminDeleteQuiz
+  apiAdminDeleteQuiz,
+  apiGetCourseEnrollments,
+  apiGetInstructorCoursesList
 } from '../../utils/api';
 import MaterialModal from '../MaterialModal';
 
@@ -45,6 +47,9 @@ function AdminPanel() {
     role: 'student',
     password: 'TempPassword123!'
   });
+  const [selectedCourseEnrollments, setSelectedCourseEnrollments] = useState(null);
+  const [expandedInstructor, setExpandedInstructor] = useState(null);
+  const [instructorCourses, setInstructorCourses] = useState([]);
 
   useEffect(() => {
     loadAdminData();
@@ -62,7 +67,8 @@ function AdminPanel() {
           totalUsers: d.totalUsers || 0,
           totalCourses: d.totalCourses || 0,
           totalEnrollments: d.totalEnrollments || 0,
-          totalQuizzes: d.totalQuizzes || d.totalQuizAttempts || 0,
+          totalQuizzes: d.totalQuizzes || 0,
+          totalQuizAttempts: d.totalQuizAttempts || 0,
           averageQuizScore: d.averageQuizScore || d.averageScore || 0,
           students: d.students || 0,
           instructors: d.instructors || 0,
@@ -271,6 +277,32 @@ function AdminPanel() {
     setSelectedCourseMaterials(course);
   };
 
+  const viewCourseEnrollments = async (course) => {
+    try {
+      const response = await apiGetCourseEnrollments(course.id);
+      setSelectedCourseEnrollments({ course, enrollments: response.data });
+    } catch (err) {
+      setError('Failed to load enrollments');
+      console.error(err);
+    }
+  };
+
+  const viewInstructorCourses = async (instructor) => {
+    try {
+      if (expandedInstructor === instructor.id) {
+        setExpandedInstructor(null);
+        setInstructorCourses([]);
+      } else {
+        const response = await apiGetInstructorCoursesList(instructor.id);
+        setInstructorCourses(response.data);
+        setExpandedInstructor(instructor.id);
+      }
+    } catch (err) {
+      setError('Failed to load instructor courses');
+      console.error(err);
+    }
+  };
+
   return (
     <section className="card">
       <h2><i className="fa-solid fa-shield"></i> Admin Panel</h2>
@@ -403,53 +435,207 @@ function AdminPanel() {
 
               <h3>Users List</h3>
               {users.length > 0 ? (
-                <div style={{ overflowX: 'auto' }}>
-                  <table className="admin-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
-                    <thead>
-                      <tr>
-                        <th>Email</th>
-                        <th>Full Name</th>
-                        <th>Role</th>
-                        <th>Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {users.map(user => (
-                          <tr key={user.id}>
-                            <td>{user.email}</td>
-                            <td>{user.name || user.fullName}</td>
-                            <td><span style={{ backgroundColor: '#1a1a1b', padding: '4px 8px', borderRadius: '4px' }}>{user.role}</span></td>
-                          <td>
-                            <button
-                              className="btn small secondary"
-                              onClick={() => handleResetPassword(user.id)}
-                              style={{ marginRight: '8px' }}
-                            >
-                              Reset Pass
-                            </button>
-                            {user.id !== current?.id && (
-                              <>
-                                <button
-                                  className="btn small"
-                                  onClick={() => handleImpersonate(user.id)}
-                                  style={{ marginRight: '8px' }}
-                                >
-                                  Impersonate
-                                </button>
-                                <button
-                                  className="btn small danger"
-                                  onClick={() => handleDeleteUser(user.id)}
-                                >
-                                  Delete
-                                </button>
-                              </>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                <>
+                  {/* Admins Section */}
+                  {users.filter(u => u.role === 'admin').length > 0 && (
+                    <div style={{ marginBottom: '32px' }}>
+                      <h4 style={{ color: '#ffd60a', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <i className="fa-solid fa-shield"></i> Administrators ({users.filter(u => u.role === 'admin').length})
+                      </h4>
+                      <div style={{ overflowX: 'auto' }}>
+                        <table className="admin-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
+                          <thead>
+                            <tr>
+                              <th>Email</th>
+                              <th>Full Name</th>
+                              <th>Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {users.filter(u => u.role === 'admin').map(user => (
+                              <tr key={user.id}>
+                                <td>{user.email}</td>
+                                <td>{user.name || user.fullName}</td>
+                                <td>
+                                  <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
+                                    <button
+                                      className="btn small secondary"
+                                      onClick={() => handleResetPassword(user.id)}
+                                      title="Reset user password"
+                                    >
+                                      <i className="fa-solid fa-key"></i> Reset Pass
+                                    </button>
+                                    {user.id !== current?.id && (
+                                      <>
+                                        <button
+                                          className="btn small"
+                                          onClick={() => handleImpersonate(user.id)}
+                                          title="Login as this user"
+                                        >
+                                          <i className="fa-solid fa-user-secret"></i> Impersonate
+                                        </button>
+                                        <button
+                                          className="btn small danger"
+                                          onClick={() => handleDeleteUser(user.id)}
+                                          title="Delete user permanently"
+                                        >
+                                          <i className="fa-solid fa-trash"></i> Delete
+                                        </button>
+                                      </>
+                                    )}
+                                  </div>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Instructors Section */}
+                  {users.filter(u => u.role === 'instructor').length > 0 && (
+                    <div style={{ marginBottom: '32px' }}>
+                      <h4 style={{ color: '#ffd60a', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <i className="fa-solid fa-chalkboard-user"></i> Instructors ({users.filter(u => u.role === 'instructor').length})
+                      </h4>
+                      <div style={{ overflowX: 'auto' }}>
+                        <table className="admin-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
+                          <thead>
+                            <tr>
+                              <th>Email</th>
+                              <th>Full Name</th>
+                              <th>Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {users.filter(u => u.role === 'instructor').map(user => (
+                              <React.Fragment key={user.id}>
+                                <tr>
+                                  <td>{user.email}</td>
+                                  <td>{user.name || user.fullName}</td>
+                                  <td>
+                                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
+                                      <button
+                                        className="btn small secondary"
+                                        onClick={() => handleResetPassword(user.id)}
+                                        title="Reset user password"
+                                      >
+                                        <i className="fa-solid fa-key"></i> Reset Pass
+                                      </button>
+                                      {user.id !== current?.id && (
+                                        <>
+                                          <button
+                                            className="btn small"
+                                            onClick={() => handleImpersonate(user.id)}
+                                            title="Login as this user"
+                                          >
+                                            <i className="fa-solid fa-user-secret"></i> Impersonate
+                                          </button>
+                                          <button
+                                            className="btn small danger"
+                                            onClick={() => handleDeleteUser(user.id)}
+                                            title="Delete user permanently"
+                                          >
+                                            <i className="fa-solid fa-trash"></i> Delete
+                                          </button>
+                                        </>
+                                      )}
+                                      <button
+                                        className="btn small"
+                                        onClick={() => viewInstructorCourses(user)}
+                                        title="View courses created by this instructor"
+                                      >
+                                        <i className="fa-solid fa-book"></i> Courses
+                                      </button>
+                                    </div>
+                                  </td>
+                                </tr>
+                                {expandedInstructor === user.id && (
+                                  <tr>
+                                    <td colSpan="3" style={{ backgroundColor: '#1a1a1b', padding: '16px' }}>
+                                      <h4 style={{ marginBottom: '12px' }}>Courses by {user.name}</h4>
+                                      {instructorCourses.length > 0 ? (
+                                        <div className="grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '12px' }}>
+                                          {instructorCourses.map(course => (
+                                            <div key={course.id} style={{ backgroundColor: '#0d0d0e', padding: '12px', borderRadius: '8px' }}>
+                                              <h5>{course.title}</h5>
+                                              <p className="small muted">{course.Quizzes?.length || 0} quizzes • {course.Enrollments?.length || 0} students</p>
+                                              <p className="small muted">{course.CourseMaterials?.length || 0} materials</p>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      ) : (
+                                        <p className="muted">No courses created yet</p>
+                                      )}
+                                    </td>
+                                  </tr>
+                                )}
+                              </React.Fragment>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Students Section */}
+                  {users.filter(u => u.role === 'student').length > 0 && (
+                    <div style={{ marginBottom: '32px' }}>
+                      <h4 style={{ color: '#ffd60a', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <i className="fa-solid fa-user-graduate"></i> Students ({users.filter(u => u.role === 'student').length})
+                      </h4>
+                      <div style={{ overflowX: 'auto' }}>
+                        <table className="admin-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
+                          <thead>
+                            <tr>
+                              <th>Email</th>
+                              <th>Full Name</th>
+                              <th>Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {users.filter(u => u.role === 'student').map(user => (
+                              <tr key={user.id}>
+                                <td>{user.email}</td>
+                                <td>{user.name || user.fullName}</td>
+                                <td>
+                                  <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
+                                    <button
+                                      className="btn small secondary"
+                                      onClick={() => handleResetPassword(user.id)}
+                                      title="Reset user password"
+                                    >
+                                      <i className="fa-solid fa-key"></i> Reset Pass
+                                    </button>
+                                    {user.id !== current?.id && (
+                                      <>
+                                        <button
+                                          className="btn small"
+                                          onClick={() => handleImpersonate(user.id)}
+                                          title="Login as this user"
+                                        >
+                                          <i className="fa-solid fa-user-secret"></i> Impersonate
+                                        </button>
+                                        <button
+                                          className="btn small danger"
+                                          onClick={() => handleDeleteUser(user.id)}
+                                          title="Delete user permanently"
+                                        >
+                                          <i className="fa-solid fa-trash"></i> Delete
+                                        </button>
+                                      </>
+                                    )}
+                                  </div>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+                </>
               ) : (
                 <p className="muted">No users found</p>
               )}
@@ -515,14 +701,21 @@ function AdminPanel() {
                       <p className="small muted">{course.level || 'N/A'}</p>
                       <p>{course.description}</p>
                       <div style={{ marginTop: 'auto' }}>
-                        <p className="small muted">{course.Quizzes?.length || 0} quizzes • {course.Enrollments?.length || 0} students</p>
-                        <div style={{ display: 'flex', gap: '8px', marginTop: '8px', flexWrap: 'wrap' }}>
+                        <p className="small muted" style={{ marginBottom: '8px' }}>{course.Quizzes?.length || 0} quizzes • {course.Enrollments?.length || 0} students</p>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}>
                           <button
                             className="btn small"
                             onClick={() => viewCourseMaterials(course)}
                             title="View materials and create quizzes"
                           >
                             <i className="fa-solid fa-eye"></i> View
+                          </button>
+                          <button
+                            className="btn small"
+                            onClick={() => viewCourseEnrollments(course)}
+                            title="View enrolled students"
+                          >
+                            <i className="fa-solid fa-users"></i> Students
                           </button>
                           <button
                             className="btn small secondary"
@@ -678,6 +871,53 @@ function AdminPanel() {
 
           {/* Material Viewer Modal */}
           {selectedMaterial && <MaterialModal material={selectedMaterial} onClose={() => setSelectedMaterial(null)} />}
+
+          {/* Course Enrollments Modal */}
+          {selectedCourseEnrollments && (
+            <div className="modal-backdrop" onClick={() => setSelectedCourseEnrollments(null)}>
+              <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '900px', width: '100%' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                  <h3 style={{ margin: 0 }}>Enrolled Students - {selectedCourseEnrollments.course.title}</h3>
+                  <button className="btn small danger" onClick={() => setSelectedCourseEnrollments(null)}>
+                    <i className="fa-solid fa-times"></i>
+                  </button>
+                </div>
+                {selectedCourseEnrollments.enrollments.length > 0 ? (
+                  <div style={{ overflowX: 'auto', maxHeight: '60vh' }}>
+                    <table className="marks-table">
+                      <thead>
+                        <tr>
+                          <th style={{ minWidth: '150px' }}>Student Name</th>
+                          <th style={{ minWidth: '200px' }}>Email</th>
+                          <th style={{ minWidth: '180px' }}>Progress</th>
+                          <th style={{ minWidth: '130px' }}>Enrolled On</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {selectedCourseEnrollments.enrollments.map(enrollment => (
+                          <tr key={enrollment.id}>
+                            <td>{enrollment.User?.name || 'N/A'}</td>
+                            <td>{enrollment.User?.email || 'N/A'}</td>
+                            <td>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                <div className="progress" style={{ width: '120px', height: '8px' }}>
+                                  <div style={{ width: `${enrollment.progress || 0}%`, height: '100%', background: '#ffd60a', borderRadius: '4px' }}></div>
+                                </div>
+                                <span style={{ fontSize: '14px', minWidth: '40px' }}>{enrollment.progress || 0}%</span>
+                              </div>
+                            </td>
+                            <td>{new Date(enrollment.createdAt).toLocaleDateString()}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <p className="muted">No students enrolled yet</p>
+                )}
+              </div>
+            </div>
+          )}
         </>
       )}
     </section>

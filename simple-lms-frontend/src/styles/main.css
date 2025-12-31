@@ -245,8 +245,14 @@ textarea {
 }
 
 .btn.small {
-  padding: 6px 10px;
+  padding: 6px 12px;
   font-weight: 600;
+  min-width: 90px;
+  text-align: center;
+  justify-content: center;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .btn.secondary {
@@ -1966,4 +1972,58 @@ textarea {
   height: 100%;
   transition: width 0.3s ease;
   border-radius: 4px;
+}
+
+/* Modal Backdrop and Content */
+.modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 20px;
+}
+
+.modal-content {
+  background: #1a1a1b;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 10px 50px rgba(0, 0, 0, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  position: relative;
+  max-width: 90vw;
+}
+
+.modal-content h3 {
+  color: #ffd60a;
+  margin-bottom: 16px;
+}
+
+.modal-content table {
+  margin-top: 0;
+}
+
+.modal-content .marks-table th,
+.modal-content .marks-table td {
+  padding: 12px;
+  vertical-align: middle;
+}
+
+.modal-content .marks-table th {
+  background: #0d0d0e;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.modal-content .marks-table td {
+  background: #1a1a1b;
+}
+
+.modal-content .marks-table tbody tr:hover td {
+  background: #222;
 }

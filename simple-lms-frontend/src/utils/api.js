@@ -117,6 +117,12 @@ export const apiAdminDeleteQuiz = (quizId) =>
 export const apiAdminGetQuiz = (quizId) =>
   apiClient.get(`/admin/quizzes/${quizId}`);
 
+export const apiGetCourseEnrollments = (courseId) =>
+  apiClient.get(`/admin/courses/${courseId}/enrollments`);
+
+export const apiGetInstructorCoursesList = (instructorId) =>
+  apiClient.get(`/admin/instructors/${instructorId}/courses`);
+
 export const apiGetCourseStudents = (courseId) =>
   apiClient.get(`/instructor/courses/${courseId}/students`);
 
