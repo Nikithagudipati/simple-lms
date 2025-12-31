@@ -114,4 +114,7 @@ export const apiAdminDeleteQuiz = (quizId) =>
 export const apiAdminGetQuiz = (quizId) =>
   apiClient.get(`/admin/quizzes/${quizId}`);
 
+export const apiGetCourseStudents = (courseId) =>
+  apiClient.get(`/instructor/courses/${courseId}/students`);
+
 export default apiClient;

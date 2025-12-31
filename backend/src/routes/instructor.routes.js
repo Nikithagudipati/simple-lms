@@ -1,7 +1,7 @@
 const router = require('express').Router();
 const auth = require('../middleware/auth.middleware');
 const role = require('../middleware/role.middleware');
-const { Course, Quiz, Question, CourseMaterial, Attempt, User } = require('../models');
+const { Course, Quiz, Question, CourseMaterial, Attempt, User, Enrollment } = require('../models');
 
 
 /* =========================
@@ -364,6 +364,104 @@ router.get('/analytics', auth, role('instructor','admin'), async (req, res) => {
   }
 
   res.json(analytics);
+});
+
+/* =========================
+   GET COURSE STUDENTS WITH STATISTICS
+========================= */
+router.get('/courses/:courseId/students', auth, role('instructor','admin'), async (req, res) => {
+  try {
+    const courseId = req.params.courseId;
+    const instructorId = req.user.id;
+
+    // Verify course exists and belongs to instructor
+    const course = await Course.findByPk(courseId, {
+      include: [
+        {
+          model: Quiz,
+          include: [Question]
+        }
+      ]
+    });
+
+    if (!course) {
+      return res.status(404).json({ msg: 'Course not found' });
+    }
+
+    if (req.user.role !== 'admin' && course.instructorId !== instructorId) {
+      return res.status(403).json({ msg: 'Not your course' });
+    }
+
+    // Get all enrolled students
+    const enrollments = await Enrollment.findAll({
+      where: { CourseId: courseId },
+      include: [{
+        model: User,
+        attributes: ['id', 'name', 'email']
+      }]
+    });
+
+    // Build statistics for each student
+    const studentsStats = await Promise.all(enrollments.map(async (enrollment) => {
+      const student = enrollment.User;
+      const quizzes = course.Quizzes || [];
+
+      let totalAttempts = 0;
+      let totalScore = 0;
+      let quizDetails = [];
+
+      for (const quiz of quizzes) {
+        const attempts = await Attempt.findAll({
+          where: {
+            UserId: student.id,
+            QuizId: quiz.id
+          },
+          order: [['createdAt', 'DESC']]
+        });
+
+        if (attempts.length > 0) {
+          const latestAttempt = attempts[0];
+          const totalQuestions = quiz.Questions.length;
+          const percentage = totalQuestions > 0 ? ((latestAttempt.score / totalQuestions) * 100).toFixed(1) : 0;
+
+          quizDetails.push({
+            quizId: quiz.id,
+            quizTitle: quiz.title,
+            attempts: attempts.length,
+            latestScore: latestAttempt.score,
+            totalQuestions: totalQuestions,
+            percentage: percentage,
+            lastAttemptDate: latestAttempt.createdAt
+          });
+
+          totalAttempts += attempts.length;
+          totalScore += latestAttempt.score;
+        }
+      }
+
+      return {
+        studentId: student.id,
+        studentName: student.name,
+        studentEmail: student.email,
+        enrolledAt: enrollment.createdAt,
+        totalAttempts: totalAttempts,
+        quizzes: quizDetails,
+        averageScore: quizDetails.length > 0 
+          ? (quizDetails.reduce((sum, q) => sum + parseFloat(q.percentage), 0) / quizDetails.length).toFixed(1)
+          : 0
+      };
+    }));
+
+    res.json({
+      courseId: course.id,
+      courseTitle: course.title,
+      totalStudents: studentsStats.length,
+      students: studentsStats
+    });
+  } catch (error) {
+    console.error('Error fetching course students:', error);
+    res.status(500).json({ msg: 'Failed to fetch course students' });
+  }
 });
 
 

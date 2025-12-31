@@ -9,6 +9,7 @@ import Dashboard from './components/pages/Dashboard';
 import CreateCourse from './components/pages/CreateCourse';
 import AdminPanel from './components/pages/AdminPanel';
 import InstructorDashboard from './components/pages/InstructorDashboard';
+import CourseStudents from './components/pages/CourseStudents';
 import './styles/main.css';
 
 function AppContent() {
@@ -37,6 +38,9 @@ function AppContent() {
           <Routes>
             <Route path="/catalog" element={<Catalog />} />
             <Route path="/course/:courseId" element={<CourseDetail />} />
+            <Route path="/course/:courseId/students" element={
+              current.role === 'instructor' || current.role === 'admin' ? <CourseStudents /> : <Navigate to="/catalog" />
+            } />
             <Route path="/dashboard" element={
               current.role === 'admin' ? <AdminPanel /> : (current.role === 'instructor' ? <InstructorDashboard /> : <Dashboard />)
             } />

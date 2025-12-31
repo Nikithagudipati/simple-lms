@@ -199,6 +199,13 @@ function InstructorDashboard() {
                     <i className="fa-solid fa-eye"></i> View
                   </button>
                   <button
+                    className="btn small"
+                    style={{ background: '#3498db', color: '#fff' }}
+                    onClick={() => navigate(`/course/${course.id}/students`)}
+                  >
+                    <i className="fa-solid fa-users"></i> Students
+                  </button>
+                  <button
                     className="btn small primary"
                     onClick={() => handleCreateQuiz(course)}
                   >
