@@ -234,34 +234,36 @@ function CourseDetail() {
           <div className="materials-grid">
             {materials.map(material => (
               <div key={material.id} className="material-card">
-                <div className="material-icon">
-                  <i className={`fa-solid ${
-                    material.content?.includes('.pdf') ? 'fa-file-pdf' : 
-                    material.content?.includes('.mp4') || material.content?.includes('youtube') || material.content?.includes('vimeo') ? 'fa-video' : 
-                    'fa-file-text'
-                  }`}></i>
+                <div className="material-header">
+                  <div className="material-icon">
+                    <i className={`fa-solid ${
+                      material.content?.includes('.pdf') ? 'fa-file-pdf' : 
+                      material.content?.includes('.mp4') || material.content?.includes('youtube') || material.content?.includes('vimeo') ? 'fa-video' : 
+                      'fa-file-text'
+                    }`}></i>
+                  </div>
+                  <div className="material-info">
+                    <h4>{material.title}</h4>
+                    <p className="material-type">
+                      {material.content?.includes('.pdf') ? 'PDF Document' : 
+                       material.content?.includes('.mp4') ? 'Video' :
+                       material.content?.includes('youtube') || material.content?.includes('vimeo') ? 'Embedded Video' :
+                       'Learning Material'}
+                    </p>
+                  </div>
                 </div>
-                <div className="material-info">
-                  <h4>{material.title}</h4>
-                  <p className="material-type">
-                    {material.content?.includes('.pdf') ? 'PDF Document' : 
-                     material.content?.includes('.mp4') ? 'Video' :
-                     material.content?.includes('youtube') || material.content?.includes('vimeo') ? 'Embedded Video' :
-                     'Learning Material'}
-                  </p>
-                </div>
-                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <div className="material-actions">
                   <button
                     className="btn small material-btn"
                     onClick={() => handleViewMaterial(material)}
                     title="View this material"
                   >
-                    <i className="fa-solid fa-eye"></i>
+                    <i className="fa-solid fa-eye"></i> View
                   </button>
                   {current?.role === 'student' && (
                     completedMaterials.includes(material.id) ? (
                       <span className="completed-badge" title="Completed">
-                        <i className="fa-solid fa-check-circle"></i>
+                        <i className="fa-solid fa-check-circle"></i> Completed
                       </span>
                     ) : (
                       <button
@@ -269,7 +271,7 @@ function CourseDetail() {
                         onClick={() => handleMarkComplete(material.id)}
                         title="Mark as complete"
                       >
-                        <i className="fa-solid fa-check"></i>
+                        <i className="fa-solid fa-check"></i> Mark Complete
                       </button>
                     )
                   )}

@@ -938,14 +938,13 @@ textarea {
 
 .material-card {
   display: flex;
-  align-items: center;
+  flex-direction: column;
   gap: 16px;
   padding: 20px;
   background: linear-gradient(135deg, #1a1a1b 0%, #242425 100%);
   border: 2px solid #333;
   border-radius: 12px;
   transition: all 0.3s ease;
-  cursor: pointer;
 }
 
 .material-card:hover {
@@ -953,6 +952,20 @@ textarea {
   transform: translateY(-4px);
   box-shadow: 0 8px 24px rgba(255, 214, 10, 0.2);
   background: linear-gradient(135deg, #242425 0%, #2e2e2f 100%);
+}
+
+.material-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.material-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .material-icon {
@@ -972,14 +985,19 @@ textarea {
 .material-info {
   flex: 1;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .material-info h4 {
   color: #f3f3f3;
-  margin-bottom: 6px;
+  margin: 0 0 4px 0;
   font-size: 1rem;
   font-weight: 600;
-  word-break: break-word;
+  line-height: 1.4;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 .material-type {
@@ -990,14 +1008,14 @@ textarea {
 
 .material-btn {
   flex-shrink: 0;
-  width: 44px;
-  height: 44px;
-  padding: 0;
+  padding: 8px 16px;
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 6px;
   background: linear-gradient(135deg, #ffd60a 0%, #ffb700 100%);
   color: #000;
+  font-size: 0.9rem;
   border: none;
   border-radius: 8px;
   font-size: 1rem;
@@ -1007,13 +1025,17 @@ textarea {
 
 .completed-badge {
   flex-shrink: 0;
-  width: 44px;
-  height: 44px;
+  padding: 8px 16px;
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 6px;
   color: #2ecc71;
-  font-size: 1.5rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  background: rgba(46, 204, 113, 0.1);
+  border: 2px solid #2ecc71;
+  border-radius: 8px;
   animation: fadeIn 0.3s ease;
 }
 
