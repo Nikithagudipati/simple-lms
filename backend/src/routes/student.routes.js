@@ -759,39 +759,32 @@ router.post('/quiz/:quizId/submit', auth, role('student'), async (req, res) => {
     const questions = quiz.Questions || [];
     const totalQuestions = questions.length;
 
-    // Check if already completed with 100%
-    const previousAttempt = await Attempt.findOne({
-      where: {
-        UserId: userId,
-        QuizId: quizId
-      }
-    });
-
-    if (previousAttempt) {
-      const prevPercentage = totalQuestions > 0 
-        ? Math.round((previousAttempt.score / totalQuestions) * 100)
-        : 0;
-      
-      if (prevPercentage >= 100) {
-        // Delete old attempt to allow retake
-        await previousAttempt.destroy();
-      } else {
-        // Allow retake - delete old attempt
-        await previousAttempt.destroy();
-      }
-    }
-
     // Calculate score
     let score = 0;
+    console.log('=== QUIZ GRADING DEBUG ===');
+    console.log('Total Questions:', totalQuestions);
+    console.log('Submitted Answers:', answers);
+    
     questions.forEach(q => {
-      const userAnswer = String(answers[q.id] || '').trim();
+      // Handle 0 values properly - don't use || which treats 0 as falsy
+      const userAnswer = answers[q.id] !== undefined ? String(answers[q.id]).trim() : '';
       const correctAnswer = String(q.correctAnswer).trim();
-      if (userAnswer === correctAnswer) {
+      const isCorrect = userAnswer === correctAnswer;
+      
+      console.log(`Question ${q.id}:`);
+      console.log(`  User Answer: "${userAnswer}" (type: ${typeof answers[q.id]})`);
+      console.log(`  Correct Answer: "${correctAnswer}" (type: ${typeof q.correctAnswer})`);
+      console.log(`  Match: ${isCorrect}`);
+      
+      if (isCorrect) {
         score++;
       }
     });
+    
+    console.log('Final Score:', score, '/', totalQuestions);
+    console.log('========================\n');
 
-    // Create new attempt
+    // Create new attempt (allow multiple attempts - don't delete old ones)
     const attempt = await Attempt.create({
       UserId: userId,
       QuizId: quizId,
