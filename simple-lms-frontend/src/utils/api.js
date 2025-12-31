@@ -126,4 +126,25 @@ export const apiGetInstructorCoursesList = (instructorId) =>
 export const apiGetCourseStudents = (courseId) =>
   apiClient.get(`/instructor/courses/${courseId}/students`);
 
+// Material upload/creation endpoints
+export const apiUploadMaterial = (courseId, file, title) => {
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('title', title);
+  formData.append('courseId', courseId);
+  
+  return axios.post(`${API_BASE}/instructor/materials/upload`, formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+      'Authorization': `Bearer ${localStorage.getItem('lms_token')}`,
+    },
+  });
+};
+
+export const apiCreateMaterialWithUrl = (courseId, materialData) =>
+  apiClient.post('/instructor/materials', { ...materialData, courseId });
+
+export const apiDeleteMaterial = (materialId) =>
+  apiClient.delete(`/instructor/materials/${materialId}`);
+
 export default apiClient;

@@ -2,6 +2,38 @@ const router = require('express').Router();
 const auth = require('../middleware/auth.middleware');
 const role = require('../middleware/role.middleware');
 const { Course, Quiz, Question, CourseMaterial, Attempt, User, Enrollment } = require('../models');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
+
+// Configure multer for file uploads
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const uploadDir = path.join(__dirname, '../../uploads');
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, uniqueSuffix + path.extname(file.originalname));
+  }
+});
+
+const upload = multer({
+  storage: storage,
+  limits: { fileSize: 50 * 1024 * 1024 }, // 50MB limit
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = /pdf|mp4|avi|mov|mkv|doc|docx|ppt|pptx|jpg|jpeg|png/;
+    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+    const mimetype = allowedTypes.test(file.mimetype);
+    if (extname && mimetype) {
+      return cb(null, true);
+    }
+    cb(new Error('Invalid file type. Allowed: PDF, Videos, Documents, Images'));
+  }
+});
 
 
 /* =========================
@@ -142,6 +174,82 @@ router.post('/materials', auth, role('instructor','admin'), async (req, res) => 
   });
 
   res.json(material);
+});
+
+/* =========================
+   UPLOAD FILE MATERIAL
+========================= */
+router.post('/materials/upload', auth, role('instructor','admin'), upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ msg: 'No file uploaded' });
+    }
+
+    const { courseId, title } = req.body;
+
+    const course = await Course.findByPk(courseId);
+    if (!course) return res.status(404).json({ msg: 'Course not found' });
+
+    if (req.user.role !== 'admin' && course.instructorId !== req.user.id) {
+      return res.status(403).json({ msg: 'Not your course' });
+    }
+
+    // Determine type based on file extension
+    const ext = path.extname(req.file.originalname).toLowerCase();
+    let type = 'document';
+    if (['.mp4', '.avi', '.mov', '.mkv'].includes(ext)) {
+      type = 'video';
+    } else if (['.pdf'].includes(ext)) {
+      type = 'pdf';
+    }
+
+    // Create material with file path
+    const fileUrl = `/uploads/${req.file.filename}`;
+    const material = await CourseMaterial.create({
+      CourseId: courseId,
+      title: title || req.file.originalname,
+      type,
+      url: fileUrl
+    });
+
+    res.json(material);
+  } catch (err) {
+    console.error('Error uploading file:', err);
+    res.status(500).json({ msg: 'Failed to upload file' });
+  }
+});
+
+// Delete material
+router.delete('/materials/:materialId', auth, role('instructor', 'admin'), async (req, res) => {
+  try {
+    const materialId = req.params.materialId;
+    const material = await CourseMaterial.findByPk(materialId, {
+      include: [{ model: Course, attributes: ['InstructorId'] }]
+    });
+
+    if (!material) {
+      return res.status(404).json({ msg: 'Material not found' });
+    }
+
+    // Check ownership (instructors can only delete their own course materials)
+    if (req.user.role === 'instructor' && material.Course.InstructorId !== req.user.id) {
+      return res.status(403).json({ msg: 'Not authorized' });
+    }
+
+    // If material is an uploaded file, delete the file from disk
+    if (material.url.startsWith('/uploads/')) {
+      const filePath = path.join(__dirname, '../../uploads', path.basename(material.url));
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+      }
+    }
+
+    await material.destroy();
+    res.json({ msg: 'Material deleted successfully' });
+  } catch (err) {
+    console.error('Error deleting material:', err);
+    res.status(500).json({ msg: 'Failed to delete material' });
+  }
 });
 
 /* =========================

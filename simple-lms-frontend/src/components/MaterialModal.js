@@ -4,9 +4,46 @@ function MaterialModal({ material, onClose }) {
   if (!material) return null;
 
   // Support both .content and .url fields from backend
-  const contentUrl = material.content || material.url || '';
+  let contentUrl = material.content || material.url || '';
+  
+  // If URL starts with /uploads, prepend the backend API URL
+  if (contentUrl.startsWith('/uploads')) {
+    contentUrl = `http://localhost:5000${contentUrl}`;
+  }
+  
+  // Convert YouTube URLs to embed format
+  if (contentUrl.includes('youtu.be/') || contentUrl.includes('youtube.com/watch')) {
+    let videoId = '';
+    if (contentUrl.includes('youtu.be/')) {
+      // Extract from youtu.be/VIDEO_ID format
+      videoId = contentUrl.split('youtu.be/')[1].split('?')[0].split('&')[0];
+    } else if (contentUrl.includes('youtube.com/watch')) {
+      // Extract from youtube.com/watch?v=VIDEO_ID format
+      const urlParams = new URLSearchParams(contentUrl.split('?')[1]);
+      videoId = urlParams.get('v');
+    }
+    if (videoId) {
+      contentUrl = `https://www.youtube.com/embed/${videoId}`;
+    }
+  }
+  
+  console.log('Material:', material);
+  console.log('Content URL:', contentUrl);
+  console.log('Material Type:', material.type);
+  
   const isPdf = contentUrl && contentUrl.toLowerCase().includes('.pdf');
-  const isVideo = contentUrl && (contentUrl.toLowerCase().includes('.mp4') || contentUrl.toLowerCase().includes('youtube') || contentUrl.toLowerCase().includes('vimeo') || contentUrl.toLowerCase().includes('embed'));
+  const isVideo = material.type === 'video' || 
+                  (contentUrl && (
+                    contentUrl.toLowerCase().includes('.mp4') || 
+                    contentUrl.toLowerCase().includes('.avi') || 
+                    contentUrl.toLowerCase().includes('.mov') || 
+                    contentUrl.toLowerCase().includes('.mkv') || 
+                    contentUrl.toLowerCase().includes('youtube') || 
+                    contentUrl.toLowerCase().includes('vimeo') || 
+                    contentUrl.toLowerCase().includes('embed')
+                  ));
+  
+  console.log('Is Video:', isVideo);
 
   const handleOpenNewTab = () => {
     if (contentUrl) {
@@ -84,10 +121,24 @@ function MaterialModal({ material, onClose }) {
                 controls
                 width="100%"
                 height="auto"
-                style={{ maxHeight: '600px', borderRadius: '8px' }}
+                preload="metadata"
+                style={{ maxHeight: '600px', borderRadius: '8px', backgroundColor: '#000' }}
                 key={contentUrl}
+                onError={(e) => {
+                  console.error('Video load error:', e);
+                  console.error('Video URL:', contentUrl);
+                }}
+                onLoadedMetadata={() => console.log('Video metadata loaded')}
               >
-                <source src={contentUrl} type="video/mp4" />
+                <source 
+                  src={contentUrl} 
+                  type={contentUrl.toLowerCase().includes('.mp4') ? 'video/mp4' : 
+                        contentUrl.toLowerCase().includes('.avi') ? 'video/x-msvideo' : 
+                        contentUrl.toLowerCase().includes('.mov') ? 'video/quicktime' : 
+                        contentUrl.toLowerCase().includes('.mkv') ? 'video/x-matroska' : 
+                        'video/mp4'} 
+                  onError={(e) => console.error('Source error:', e)}
+                />
                 Your browser does not support the video tag.
               </video>
             )
