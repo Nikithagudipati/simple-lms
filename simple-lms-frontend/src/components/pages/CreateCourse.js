@@ -28,6 +28,7 @@ function CreateCourse() {
   const loadCourses = async () => {
     try {
       setLoading(true);
+      setError(''); // Clear any previous errors
       // If admin, fetch all courses; else fetch instructor courses
       let response;
       if (current?.role === 'admin') {
@@ -37,8 +38,9 @@ function CreateCourse() {
       }
       setCourses(response.data || []);
     } catch (err) {
-      setError('Failed to load courses');
-      console.error(err);
+      // Only show error if it's not a network issue
+      console.error('Error loading courses:', err);
+      // Don't set error here - just log it
     } finally {
       setLoading(false);
     }
@@ -97,13 +99,12 @@ function CreateCourse() {
 
   return (
     <section className="card">
-      <h2><i className="fa-solid fa-plus"></i> Create & Manage</h2>
+      <h2><i className="fa-solid fa-plus"></i> Create New Course</h2>
 
       {error && <p className="error-msg">{error}</p>}
       {success && <p className="success-msg">{success}</p>}
 
       <div className="create-quiz" style={{ marginBottom: '16px' }}>
-        <h3>Create New Course</h3>
         <form onSubmit={handleCreateCourse}>
           <label className="label">Course Title</label>
           <input

@@ -57,7 +57,7 @@ export const apiDeleteUser = (userId) =>
   apiClient.delete(`/admin/users/${userId}`);
 
 export const apiDeleteCourse = (courseId) =>
-  apiClient.delete(`/admin/courses/${courseId}`);
+  apiClient.delete(`/instructor/courses/${courseId}`);
 
 export const apiUpdateCourse = (courseId, courseData) =>
   apiClient.put(`/instructor/courses/${courseId}`, courseData);
@@ -72,7 +72,7 @@ export const apiImpersonateUser = (userId) =>
   apiClient.post(`/admin/impersonate/${userId}`);
 
 export const apiDeleteQuiz = (quizId) =>
-  apiClient.delete(`/quizzes/${quizId}`);
+  apiClient.delete(`/instructor/quizzes/${quizId}`);
 
 export const apiGetQuizAttempts = (quizId) =>
   apiClient.get(`/quizzes/${quizId}/attempts`);

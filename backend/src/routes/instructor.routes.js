@@ -5,6 +5,58 @@ const { Course, Quiz, Question, CourseMaterial, Attempt, User } = require('../mo
 
 
 /* =========================
+   GET INSTRUCTOR COURSES
+========================= */
+router.get('/courses', auth, role('instructor','admin'), async (req, res) => {
+  try {
+    const instructorId = req.user.id;
+    
+    const courses = await Course.findAll({
+      where: { instructorId },
+      include: [
+        {
+          model: CourseMaterial,
+          attributes: ['id', 'title', 'type', 'url']
+        },
+        {
+          model: Quiz,
+          attributes: ['id', 'title'],
+          include: [{
+            model: Question,
+            attributes: ['id', 'question', 'options', 'correctAnswer']
+          }]
+        }
+      ],
+      order: [['createdAt', 'DESC']]
+    });
+    
+    // Add attempt counts for each course
+    const coursesWithAttempts = await Promise.all(courses.map(async (course) => {
+      const courseJson = course.toJSON();
+      
+      // Count total attempts across all quizzes in this course
+      let totalAttempts = 0;
+      if (courseJson.Quizzes && courseJson.Quizzes.length > 0) {
+        for (const quiz of courseJson.Quizzes) {
+          const attemptCount = await Attempt.count({ where: { QuizId: quiz.id } });
+          totalAttempts += attemptCount;
+        }
+      }
+      
+      return {
+        ...courseJson,
+        attemptCount: totalAttempts
+      };
+    }));
+    
+    res.json(coursesWithAttempts);
+  } catch (error) {
+    console.error('Error fetching instructor courses:', error);
+    res.status(500).json({ msg: 'Failed to fetch courses' });
+  }
+});
+
+/* =========================
    CREATE COURSE
 ========================= */
 router.post('/courses', auth, role('instructor','admin'), async (req, res) => {
@@ -18,6 +70,29 @@ router.post('/courses', auth, role('instructor','admin'), async (req, res) => {
   });
 
   res.json(course);
+});
+
+/* =========================
+   DELETE COURSE (INSTRUCTOR)
+========================= */
+router.delete('/courses/:id', auth, role('instructor','admin'), async (req, res) => {
+  try {
+    const course = await Course.findByPk(req.params.id);
+    if (!course) {
+      return res.status(404).json({ msg: 'Course not found' });
+    }
+
+    // Ensure instructor owns the course (admins can delete any course)
+    if (req.user.role !== 'admin' && course.instructorId !== req.user.id) {
+      return res.status(403).json({ msg: 'Not your course' });
+    }
+
+    await course.destroy();
+    res.json({ msg: 'Course deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting course:', error);
+    res.status(500).json({ msg: 'Failed to delete course' });
+  }
 });
 
 /* =========================
@@ -72,8 +147,9 @@ router.post('/materials', auth, role('instructor','admin'), async (req, res) => 
 /* =========================
    CREATE QUIZ + QUESTIONS
 ========================= */
-router.post('/quizzes', auth, role('instructor','admin'), async (req, res) => {
-  const { courseId, title, questions } = req.body;
+router.post('/courses/:courseId/quizzes', auth, role('instructor','admin'), async (req, res) => {
+  const { title, questions } = req.body;
+  const courseId = req.params.courseId;
 
   const course = await Course.findByPk(courseId);
   if (!course) return res.status(404).json({ msg: 'Course not found' });
