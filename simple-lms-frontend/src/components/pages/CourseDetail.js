@@ -20,6 +20,7 @@ function CourseDetail() {
   const [quizLoading, setQuizLoading] = useState(false);
   const [isEnrolled, setIsEnrolled] = useState(false);
   const [enrolling, setEnrolling] = useState(false);
+  const [isOwner, setIsOwner] = useState(false);
 
   useEffect(() => {
     loadCourseDetail();
@@ -53,6 +54,12 @@ function CourseDetail() {
       setCourse(normalized);
       setQuizzes((courseData.Quizzes || []));
       setMaterials(normalized.CourseMaterials || []);
+      
+      // Check if instructor owns this course
+      if (current?.role === 'instructor') {
+        const instructorId = courseData.Instructor?.id || courseData.instructorId || courseData.userId;
+        setIsOwner(instructorId === current.id);
+      }
       
       // Check if student is enrolled by checking student summary
       if (current?.role === 'student') {
@@ -238,7 +245,7 @@ function CourseDetail() {
         </div>
       )}
 
-      {quizzes.length > 0 && (current?.role === 'admin' || current?.role === 'instructor') && (
+      {quizzes.length > 0 && (current?.role === 'admin' || (current?.role === 'instructor' && isOwner)) && (
         <div className="quizzes-section">
           <h3 className="section-title">📝 Quizzes</h3>
           <div className="quizzes-list">

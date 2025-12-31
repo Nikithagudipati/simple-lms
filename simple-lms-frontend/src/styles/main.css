@@ -342,8 +342,47 @@ textarea {
   margin-top: 12px;
 }
 
+.dashboard-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+  margin-bottom: 32px;
+}
+
+.stat-card {
+  background: linear-gradient(135deg, #1a1a1b 0%, #242425 100%);
+  border: 2px solid rgba(255, 214, 10, 0.2);
+  border-radius: 12px;
+  padding: 24px;
+  text-align: center;
+  transition: all 0.3s ease;
+}
+
+.stat-card:hover {
+  border-color: #ffd60a;
+  box-shadow: 0 4px 16px rgba(255, 214, 10, 0.15);
+  transform: translateY(-2px);
+}
+
+.stat-card h3 {
+  color: #ffd60a;
+  font-size: 2.5rem;
+  margin: 0;
+  font-weight: 700;
+}
+
+.stat-card p {
+  color: #a8a8a9;
+  margin: 8px 0 0 0;
+  font-size: 0.95rem;
+}
+
 @media (max-width: 768px) {
   .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .dashboard-stats {
     grid-template-columns: 1fr;
   }
 }
@@ -1522,6 +1561,10 @@ textarea {
   padding: 60px 20px;
   color: #a8a8a9;
   font-size: 1.1rem;
+}
+
+.empty-state .btn {
+  margin-top: 20px;
 }
 
 /* Responsive Design */
