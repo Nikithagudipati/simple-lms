@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { apiGetCourseDetail, apiTrackCourseTime, apiGetQuiz, apiSubmitQuiz, apiMarkMaterialAsCompleted, apiEnrollCourse, apiGetStudentSummary } from '../../utils/api';
+import { apiGetCourseDetail, apiTrackCourseTime, apiGetQuiz, apiSubmitQuiz, apiMarkMaterialAsCompleted, apiEnrollCourse, apiGetStudentSummary, apiGetCompletedMaterials } from '../../utils/api';
 import MaterialModal from '../MaterialModal';
 
 function CourseDetail() {
@@ -18,6 +18,7 @@ function CourseDetail() {
   const [courseTimeStart, setCourseTimeStart] = useState(Date.now());
   const [selectedMaterial, setSelectedMaterial] = useState(null);
   const [quizLoading, setQuizLoading] = useState(false);
+  const [completedMaterials, setCompletedMaterials] = useState([]);
   const [isEnrolled, setIsEnrolled] = useState(false);
   const [enrolling, setEnrolling] = useState(false);
   const [isOwner, setIsOwner] = useState(false);
@@ -66,7 +67,18 @@ function CourseDetail() {
         try {
           const summaryResponse = await apiGetStudentSummary();
           const enrolledCourseIds = (summaryResponse.data.enrolledCourses || []).map(c => c.id);
-          setIsEnrolled(enrolledCourseIds.includes(Number(courseId)));
+          const enrolled = enrolledCourseIds.includes(Number(courseId));
+          setIsEnrolled(enrolled);
+          
+          // Load completed materials if enrolled
+          if (enrolled) {
+            try {
+              const completedResponse = await apiGetCompletedMaterials(courseId);
+              setCompletedMaterials(completedResponse.data.completedMaterialIds || []);
+            } catch (e) {
+              console.error('Could not fetch completed materials:', e);
+            }
+          }
         } catch (e) {
           console.error('Could not fetch enrollment status:', e);
           setIsEnrolled(false);
@@ -130,6 +142,18 @@ function CourseDetail() {
     }
     // Admin and instructor can always view
     setSelectedMaterial(material);
+  };
+
+  const handleMarkComplete = async (materialId) => {
+    try {
+      await apiMarkMaterialAsCompleted(materialId);
+      setCompletedMaterials([...completedMaterials, materialId]);
+      // Refresh course data to get updated progress
+      loadCourseDetail();
+    } catch (err) {
+      console.error('Error marking material complete:', err);
+      setError('Failed to mark material as complete');
+    }
   };
 
   const handleEnroll = async () => {
@@ -226,13 +250,30 @@ function CourseDetail() {
                      'Learning Material'}
                   </p>
                 </div>
-                <button
-                  className="btn small material-btn"
-                  onClick={() => handleViewMaterial(material)}
-                  title="View this material"
-                >
-                  <i className="fa-solid fa-eye"></i>
-                </button>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <button
+                    className="btn small material-btn"
+                    onClick={() => handleViewMaterial(material)}
+                    title="View this material"
+                  >
+                    <i className="fa-solid fa-eye"></i>
+                  </button>
+                  {current?.role === 'student' && (
+                    completedMaterials.includes(material.id) ? (
+                      <span className="completed-badge" title="Completed">
+                        <i className="fa-solid fa-check-circle"></i>
+                      </span>
+                    ) : (
+                      <button
+                        className="btn small primary"
+                        onClick={() => handleMarkComplete(material.id)}
+                        title="Mark as complete"
+                      >
+                        <i className="fa-solid fa-check"></i>
+                      </button>
+                    )
+                  )}
+                </div>
               </div>
             ))}
           </div>

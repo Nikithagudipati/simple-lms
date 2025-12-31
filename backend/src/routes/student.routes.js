@@ -1,7 +1,54 @@
 const router = require('express').Router();
 const auth = require('../middleware/auth.middleware');
 const role = require('../middleware/role.middleware');
-const { Enrollment, Course, CourseMaterial, Quiz, Question, Attempt } = require('../models');
+const { Enrollment, Course, CourseMaterial, Quiz, Question, Attempt, MaterialCompletion } = require('../models');
+
+/* =========================
+   HELPER: CALCULATE COURSE PROGRESS
+========================= */
+async function calculateCourseProgress(userId, courseId) {
+  // Get total materials and quizzes for the course
+  const totalMaterials = await CourseMaterial.count({ where: { CourseId: courseId } });
+  const totalQuizzes = await Quiz.count({ where: { CourseId: courseId } });
+  const totalItems = totalMaterials + totalQuizzes;
+  
+  if (totalItems === 0) return 0;
+  
+  // Get all material IDs for this course
+  const courseMaterialIds = await CourseMaterial.findAll({
+    where: { CourseId: courseId },
+    attributes: ['id'],
+    raw: true
+  });
+  const materialIds = courseMaterialIds.map(m => m.id);
+  
+  // Count completed materials
+  const completedMaterials = await MaterialCompletion.count({
+    where: { 
+      UserId: userId,
+      CourseMaterialId: materialIds
+    }
+  });
+  
+  // Count completed quizzes (unique quiz attempts)
+  const courseQuizzes = await Quiz.findAll({
+    where: { CourseId: courseId },
+    attributes: ['id']
+  });
+  const quizIds = courseQuizzes.map(q => q.id);
+  
+  const attempts = await Attempt.findAll({
+    where: { UserId: userId, QuizId: quizIds },
+    attributes: ['QuizId'],
+    raw: true
+  });
+  
+  const completedQuizzes = [...new Set(attempts.map(a => a.QuizId))].length;
+  
+  // Calculate progress percentage
+  const completedItems = completedMaterials + completedQuizzes;
+  return Math.round((completedItems / totalItems) * 100);
+}
 
 /* =========================
    STUDENT DASHBOARD
@@ -330,46 +377,12 @@ router.get('/summary', auth, role('student'), async (req, res) => {
     include: [{ model: Course, include: [{ model: require('../models').User, as: 'Instructor', attributes: ['id','name','email'] }] }]
   });
 
-  // Recalculate progress for each enrollment
+  // Recalculate progress for each enrollment using materials + quizzes
   for (const enrollment of enrollments) {
-    const totalQuizzes = await Quiz.count({
-      where: { CourseId: enrollment.CourseId }
-    });
-
-    if (totalQuizzes > 0) {
-      // Get all quiz IDs for this course
-      const courseQuizzes = await Quiz.findAll({
-        where: { CourseId: enrollment.CourseId },
-        attributes: ['id']
-      });
-      const quizIds = courseQuizzes.map(q => q.id);
-
-      // Count unique quizzes attempted by this user
-      const attempts = await Attempt.findAll({
-        where: {
-          UserId: userId,
-          QuizId: quizIds
-        },
-        attributes: ['QuizId'],
-        raw: true
-      });
-
-      // Get unique quiz IDs from attempts
-      const uniqueQuizIds = [...new Set(attempts.map(a => a.QuizId))];
-      const completedQuizzesCount = uniqueQuizIds.length;
-
-      // Calculate progress percentage
-      const progress = Math.round((completedQuizzesCount / totalQuizzes) * 100);
-      
-      enrollment.progress = progress;
-      enrollment.completed = progress >= 100;
-      await enrollment.save();
-    } else {
-      // No quizzes in course, progress is 0
-      enrollment.progress = 0;
-      enrollment.completed = false;
-      await enrollment.save();
-    }
+    const progress = await calculateCourseProgress(userId, enrollment.CourseId);
+    enrollment.progress = progress;
+    enrollment.completed = progress >= 100;
+    await enrollment.save();
   }
 
   // Get all attempts with quiz and question data for average score calculation
@@ -604,11 +617,32 @@ router.post('/materials/:materialId/complete', auth, role('student'), async (req
       return res.status(403).json({ msg: 'Not enrolled in this course' });
     }
 
-    // Store completion in a simple way - update material status or create log
-    // For now, just acknowledge the completion
+    // Check if already completed
+    const existing = await MaterialCompletion.findOne({
+      where: {
+        UserId: userId,
+        CourseMaterialId: materialId
+      }
+    });
+
+    if (!existing) {
+      // Mark as completed
+      await MaterialCompletion.create({
+        UserId: userId,
+        CourseMaterialId: materialId
+      });
+    }
+
+    // Update enrollment progress
+    const progress = await calculateCourseProgress(userId, material.CourseId);
+    enrollment.progress = progress;
+    enrollment.completed = progress >= 100;
+    await enrollment.save();
+
     res.json({ 
       msg: 'Material marked as completed',
-      materialId: materialId
+      materialId: materialId,
+      progress: progress
     });
   } catch (error) {
     console.error('Error marking material complete:', error);
@@ -643,6 +677,38 @@ router.get('/course/:courseId/materials', auth, role('student'), async (req, res
     res.json(materials);
   } catch (error) {
     console.error('Error fetching materials:', error);
+    res.status(500).json({ msg: 'Server error: ' + error.message });
+  }
+});
+
+/* =========================
+   GET COMPLETED MATERIALS FOR A COURSE
+========================= */
+router.get('/course/:courseId/completed-materials', auth, role('student'), async (req, res) => {
+  try {
+    const { courseId } = req.params;
+    const userId = req.user.id;
+
+    // Get all material IDs for this course
+    const courseMaterials = await CourseMaterial.findAll({
+      where: { CourseId: courseId },
+      attributes: ['id']
+    });
+    const materialIds = courseMaterials.map(m => m.id);
+
+    // Get completions for these materials by this user
+    const completions = await MaterialCompletion.findAll({
+      where: {
+        UserId: userId,
+        CourseMaterialId: materialIds
+      },
+      attributes: ['CourseMaterialId']
+    });
+
+    const completedIds = completions.map(c => c.CourseMaterialId);
+    res.json({ completedMaterialIds: completedIds });
+  } catch (error) {
+    console.error('Error fetching completed materials:', error);
     res.status(500).json({ msg: 'Server error: ' + error.message });
   }
 });
@@ -791,35 +857,11 @@ router.post('/quiz/:quizId/submit', auth, role('student'), async (req, res) => {
       score: score
     });
 
-    // Recalculate enrollment progress
-    const totalQuizzes = await Quiz.count({
-      where: { CourseId: quiz.CourseId }
-    });
-
-    if (totalQuizzes > 0) {
-      const courseQuizzes = await Quiz.findAll({
-        where: { CourseId: quiz.CourseId },
-        attributes: ['id']
-      });
-      const quizIds = courseQuizzes.map(q => q.id);
-
-      const attempts = await Attempt.findAll({
-        where: {
-          UserId: userId,
-          QuizId: quizIds
-        },
-        attributes: ['QuizId'],
-        raw: true
-      });
-
-      const uniqueQuizIds = [...new Set(attempts.map(a => a.QuizId))];
-      const completedQuizzesCount = uniqueQuizIds.length;
-      const progress = Math.round((completedQuizzesCount / totalQuizzes) * 100);
-
-      enrollment.progress = progress;
-      enrollment.completed = progress >= 100;
-      await enrollment.save();
-    }
+    // Recalculate enrollment progress (materials + quizzes)
+    const progress = await calculateCourseProgress(userId, quiz.CourseId);
+    enrollment.progress = progress;
+    enrollment.completed = progress >= 100;
+    await enrollment.save();
 
     const percentage = totalQuestions > 0 
       ? Math.round((score / totalQuestions) * 100)

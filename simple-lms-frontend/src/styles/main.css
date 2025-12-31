@@ -999,6 +999,18 @@ textarea {
   cursor: pointer;
 }
 
+.completed-badge {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #2ecc71;
+  font-size: 1.5rem;
+  animation: fadeIn 0.3s ease;
+}
+
 .material-btn:hover {
   transform: scale(1.05);
   box-shadow: 0 4px 12px rgba(255, 214, 10, 0.4);

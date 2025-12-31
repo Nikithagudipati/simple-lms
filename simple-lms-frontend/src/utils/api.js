@@ -92,6 +92,9 @@ export const apiGetQuizScoresByCourse = () =>
 export const apiMarkMaterialAsCompleted = (materialId) =>
   apiClient.post(`/student/materials/${materialId}/complete`);
 
+export const apiGetCompletedMaterials = (courseId) =>
+  apiClient.get(`/student/course/${courseId}/completed-materials`);
+
 export const apiGetCourseProgress = (courseId) =>
   apiClient.get(`/student/course-progress/${courseId}`);
 
