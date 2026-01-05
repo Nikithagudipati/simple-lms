@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { apiGetStudentSummary, apiGetPendingQuizzesData, apiGetQuizScoresByCourse } from '../../utils/api';
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend } from 'chart.js';
@@ -10,6 +10,7 @@ ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, T
 function Dashboard() {
   const { current } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [enrolledCourses, setEnrolledCourses] = useState([]);
   const [pendingQuizzes, setPendingQuizzes] = useState([]);
   const [quizScores, setQuizScores] = useState([]);
@@ -21,6 +22,24 @@ function Dashboard() {
   useEffect(() => {
     loadDashboard();
   }, []);
+
+  // Reload data when switching tabs to ensure fresh data
+  useEffect(() => {
+    if (activeTab === 'scores') {
+      // Reload quiz scores when viewing scores tab
+      const reloadScores = async () => {
+        try {
+          console.log('Reloading quiz scores...');
+          const scoresResponse = await apiGetQuizScoresByCourse();
+          console.log('Quiz scores response:', scoresResponse.data);
+          setQuizScores(scoresResponse.data || []);
+        } catch (e) {
+          console.error('Could not reload quiz scores:', e);
+        }
+      };
+      reloadScores();
+    }
+  }, [activeTab]);
 
   const loadDashboard = async () => {
     try {
@@ -87,7 +106,16 @@ function Dashboard() {
 
   return (
     <section className="card">
-      <h2><i className="fa-solid fa-gauge"></i> Student Dashboard</h2>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+        <h2><i className="fa-solid fa-gauge"></i> Student Dashboard</h2>
+        <button 
+          className="btn small secondary" 
+          onClick={() => loadDashboard()}
+          title="Refresh dashboard data"
+        >
+          <i className="fa-solid fa-refresh"></i> Refresh
+        </button>
+      </div>
       
       {error && <p className="error-msg">{error}</p>}
 

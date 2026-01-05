@@ -537,6 +537,7 @@ router.get('/pending-quizzes', auth, role('student'), async (req, res) => {
 router.get('/quiz-scores-by-course', auth, role('student'), async (req, res) => {
   try {
     const userId = req.user.id;
+    console.log('=== FETCHING QUIZ SCORES FOR USER:', userId, '===');
 
     // Get all enrollments
     const enrollments = await Enrollment.findAll({
@@ -544,7 +545,10 @@ router.get('/quiz-scores-by-course', auth, role('student'), async (req, res) => 
       include: Course
     });
 
+    console.log('Found enrollments:', enrollments.length);
+
     const quizScores = [];
+    const seenQuizzes = new Set(); // Track quizzes we've already added
 
     // For each course, find quizzes and their scores
     for (const enrollment of enrollments) {
@@ -553,14 +557,28 @@ router.get('/quiz-scores-by-course', auth, role('student'), async (req, res) => 
         include: [{ model: Question }]
       });
 
+      console.log(`Course ${enrollment.Course.title}: Found ${quizzes.length} quizzes`);
+
       for (const quiz of quizzes) {
-        // Check if attempted
-        const attempt = await Attempt.findOne({
+        // Skip if we've already processed this quiz
+        if (seenQuizzes.has(quiz.id)) {
+          console.log(`Quiz ${quiz.title}: Already processed, skipping`);
+          continue;
+        }
+
+        // Get ALL attempts for this quiz, ordered by createdAt descending
+        const attempts = await Attempt.findAll({
           where: {
             UserId: userId,
             QuizId: quiz.id
-          }
+          },
+          order: [['createdAt', 'DESC']],
+          limit: 1 // Only get the most recent one
         });
+
+        const attempt = attempts[0]; // Get the first (most recent) attempt
+
+        console.log(`Quiz ${quiz.title}: ${attempt ? 'Found attempt with score ' + attempt.score + ' created at ' + attempt.createdAt : 'No attempt'}`);
 
         // Only add if attempted
         if (attempt) {
@@ -576,14 +594,19 @@ router.get('/quiz-scores-by-course', auth, role('student'), async (req, res) => 
             score: attempt.score,
             totalQuestions: totalQuestions,
             percentage: percentage,
-            date: attempt.updatedAt || attempt.createdAt
+            date: attempt.createdAt
           });
+
+          seenQuizzes.add(quiz.id); // Mark this quiz as processed
         }
       }
     }
 
     // Sort by date descending
     quizScores.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+    console.log('Returning', quizScores.length, 'quiz scores');
+    console.log('Quiz scores:', JSON.stringify(quizScores, null, 2));
 
     res.json(quizScores);
   } catch (error) {

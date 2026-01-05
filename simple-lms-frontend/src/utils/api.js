@@ -87,7 +87,9 @@ export const apiGetPendingQuizzesData = () =>
   apiClient.get('/student/pending-quizzes');
 
 export const apiGetQuizScoresByCourse = () =>
-  apiClient.get('/student/quiz-scores-by-course');
+  apiClient.get('/student/quiz-scores-by-course', {
+    params: { _t: Date.now() } // Cache busting
+  });
 
 export const apiMarkMaterialAsCompleted = (materialId) =>
   apiClient.post(`/student/materials/${materialId}/complete`);
