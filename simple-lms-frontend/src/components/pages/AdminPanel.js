@@ -645,7 +645,19 @@ function AdminPanel() {
           {/* Courses Tab */}
           {activeTab === 'courses' && (
             <div>
-              <h3>Courses List</h3>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                <h3>Courses List</h3>
+                <button 
+                  className="btn" 
+                  onClick={() => {
+                    setEditingCourse(null);
+                    setCourseFormData({ title: '', description: '', instructorId: '', level: 'Beginner' });
+                    setShowCreateCourseForm(true);
+                  }}
+                >
+                  <i className="fa-solid fa-plus"></i> Create Course
+                </button>
+              </div>
               {courses.length > 0 ? (
                 <div className="grid">
                   {courses.map(course => (
@@ -691,6 +703,78 @@ function AdminPanel() {
               ) : (
                 <p className="muted">No courses found</p>
               )}
+            </div>
+          )}
+
+          {/* Course Form Modal */}
+          {showCreateCourseForm && (
+            <div className="modal-backdrop" onClick={() => {
+              setShowCreateCourseForm(false);
+              setEditingCourse(null);
+              setCourseFormData({ title: '', description: '', instructorId: '', level: 'Beginner' });
+            }}>
+              <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '600px', width: '100%' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                  <h3 style={{ margin: 0 }}>{editingCourse ? 'Edit Course' : 'Create New Course'}</h3>
+                  <button className="btn small danger" onClick={() => {
+                    setShowCreateCourseForm(false);
+                    setEditingCourse(null);
+                    setCourseFormData({ title: '', description: '', instructorId: '', level: 'Beginner' });
+                  }}>
+                    <i className="fa-solid fa-times"></i>
+                  </button>
+                </div>
+                <form onSubmit={editingCourse ? handleEditCourse : handleCreateCourse}>
+                  <label className="label">Course Title</label>
+                  <input
+                    type="text"
+                    placeholder="Enter course title"
+                    value={courseFormData.title}
+                    onChange={(e) => setCourseFormData({ ...courseFormData, title: e.target.value })}
+                    required
+                  />
+
+                  <label className="label">Description</label>
+                  <textarea
+                    placeholder="Enter course description"
+                    value={courseFormData.description}
+                    onChange={(e) => setCourseFormData({ ...courseFormData, description: e.target.value })}
+                    rows="4"
+                    required
+                  />
+
+                  <label className="label">Instructor ID (optional)</label>
+                  <input
+                    type="number"
+                    placeholder="Enter instructor user ID"
+                    value={courseFormData.instructorId}
+                    onChange={(e) => setCourseFormData({ ...courseFormData, instructorId: e.target.value })}
+                  />
+
+                  <label className="label">Level</label>
+                  <select
+                    value={courseFormData.level}
+                    onChange={(e) => setCourseFormData({ ...courseFormData, level: e.target.value })}
+                  >
+                    <option value="Beginner">Beginner</option>
+                    <option value="Intermediate">Intermediate</option>
+                    <option value="Advanced">Advanced</option>
+                  </select>
+
+                  <div style={{ display: 'flex', gap: '8px', marginTop: '16px' }}>
+                    <button type="submit" className="btn">
+                      {editingCourse ? 'Update Course' : 'Create Course'}
+                    </button>
+                    <button type="button" className="btn secondary" onClick={() => {
+                      setShowCreateCourseForm(false);
+                      setEditingCourse(null);
+                      setCourseFormData({ title: '', description: '', instructorId: '', level: 'Beginner' });
+                    }}>
+                      Cancel
+                    </button>
+                  </div>
+                </form>
+              </div>
             </div>
           )}
 
