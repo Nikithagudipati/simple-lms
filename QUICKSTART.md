@@ -1,52 +1,202 @@
-# Quick Start - Simple LMS
+# SimpleLMS - Quick Start Guide
 
 ## ⚡ Get Started in 5 Minutes
 
 ### Prerequisites
-- Node.js v16+ and npm installed
-- Git (optional)
+- Node.js v14+ installed
+- MySQL/MariaDB running
+- npm or yarn
 
-### 1. Start Backend Server
+---
+
+## 🚀 Option 1: Quick Start (Recommended)
+
+### 1. Configure Environment
+Navigate to backend folder and create `.env` file:
+```bash
+cd simple-lms/backend
+```
+
+Create `.env` with:
+```env
+JWT_SECRET=super_secret_key
+DB_HOST=localhost
+DB_USER=root
+DB_PASSWORD=your_password
+DB_NAME=lms_db
+PORT=5000
+```
+
+### 2. Install Dependencies
+
+**Backend:**
+```bash
+cd backend
+npm install
+```
+
+**Frontend:**
+```bash
+cd ../simple-lms-frontend
+npm install
+```
+
+### 3. Start Both Servers
+
+**Using Batch File (Windows):**
+```bash
+cd simple-lms
+start-servers.bat
+```
+
+**Manual Start:**
+
+Terminal 1 (Backend):
 ```bash
 cd simple-lms/backend
 node server.js
 ```
 ✅ Backend running on `http://localhost:5000`
 
-### 2. Start React Frontend
-Open **new terminal** and run:
+Terminal 2 (Frontend):
 ```bash
-cd simple-lms-frontend
+cd simple-lms/simple-lms-frontend
 npm start
 ```
 ✅ Frontend running on `http://localhost:3000`
 
-### 3. Login & Test
-Open browser to `http://localhost:3000` and login with:
-- **Email**: admin@example.com
-- **Password**: password
+### 4. Login & Explore
+
+Open browser to `http://localhost:3000`
+
+---
+
+## 👥 Default Login Credentials
+
+### Admin Account
+- **Email**: admin@lms.com
+- **Password**: Admin123!
+- **Access**: Full system control
+
+### Instructor Account
+- **Email**: instructor@lms.com
+- **Password**: Instructor123!
+- **Access**: Create/manage courses
+
+### Student Account
+- **Email**: student@lms.com
+- **Password**: Student123!
+- **Access**: Enroll and learn
 
 ---
 
 ## 📝 What You Can Do
 
-### As a Student
-1. Browse courses in the catalog
-2. Enroll in courses
-3. Take quizzes and see scores
-4. View progress on dashboard
+### 👨‍🎓 As a Student
+1. **Browse Courses**: View catalog with search and filters
+2. **Enroll**: One-click enrollment in courses
+3. **View Materials**: Access PDFs, videos, and text content
+4. **Take Quizzes**: Complete quizzes with instant grading
+5. **Track Progress**: View dashboard with scores and stats
+6. **Check Pending Quizzes**: See unattempted quizzes
+7. **View Analytics**: Time spent and performance charts
 
-### As an Instructor
-1. Create new courses
-2. Manage your courses
-3. View student enrollments
-4. (Admin panel access for special functions)
+### 👨‍🏫 As an Instructor
+1. **Create Courses**: Build courses with descriptions and levels
+2. **Upload Materials**: Add PDFs, videos, and text content
+3. **Design Quizzes**: Create multiple-choice quizzes
+4. **Manage Content**: Edit and update your courses
+5. **Monitor Students**: View enrolled students and progress
+6. **Track Engagement**: See course statistics
 
-### As an Admin
-1. View system statistics
-2. Manage all users (create, reset password, delete)
-3. Manage all courses (view, delete)
-4. See user breakdown by role
+### 🛡️ As an Admin
+1. **View Analytics**: System-wide statistics dashboard
+2. **Manage Users**: Create, delete, and reset passwords
+3. **Oversee Courses**: View, edit, and delete any course
+4. **Manage Quizzes**: View and delete quizzes
+5. **Impersonate Users**: Login as any user for support
+6. **Track Enrollments**: Monitor student progress
+7. **Role Management**: Assign user roles
+
+---
+
+## 🎯 Quick Test Flow
+
+### Student Experience (5 minutes)
+1. Login as student
+2. Go to Catalog → Enroll in a course
+3. View Course → Click material to view in modal
+4. Take Quiz → See instant results
+5. Check Dashboard → View scores and progress
+6. Switch to "Pending Quizzes" tab
+
+### Instructor Experience (5 minutes)
+1. Login as instructor
+2. Click "Create Course" → Fill form
+3. Add course materials
+4. Create quiz with questions
+5. View enrolled students
+
+### Admin Experience (5 minutes)
+1. Login as admin
+2. View Statistics tab → See system overview
+3. Users tab → Create new user
+4. Courses tab → Edit/delete courses
+5. Try impersonating a student
+
+---
+
+## 🔧 Troubleshooting
+
+### Backend Won't Start
+```bash
+# Check MySQL is running
+# Verify .env credentials
+# Ensure port 5000 is free
+```
+
+### Frontend Won't Connect
+```bash
+# Verify backend is running on port 5000
+# Check browser console for errors
+# Clear localStorage: localStorage.clear()
+```
+
+### Database Issues
+```bash
+# Backend auto-syncs database on startup
+# Check database credentials in .env
+# Ensure lms_db exists or will be created
+```
+
+### Login Issues
+```bash
+# Verify default users exist (created on first run)
+# Check backend console for errors
+# Try resetting password as admin
+```
+
+---
+
+## 📚 Next Steps
+
+After quick start, explore:
+- **README.md** - Complete project documentation
+- **TESTING_GUIDE.md** - Detailed testing procedures
+- **API_REFERENCE.md** - API endpoint documentation
+- **FEATURE_GUIDE.md** - Feature details and usage
+
+---
+
+## 🎉 You're Ready!
+
+The LMS is now running and ready to use. Explore all three roles to see the full functionality!
+
+**Need Help?** Check the main README.md or TESTING_GUIDE.md for more details.
+
+---
+
+**SimpleLMS | Quick Start Complete ✅**
 
 ---
 

@@ -1,57 +1,113 @@
-# React LMS - Testing Guide
+# SimpleLMS - Comprehensive Testing Guide
 
-## Servers Status
-- ✅ Frontend (React): http://localhost:3000
-- ✅ Backend (Express): http://localhost:5000
-- ✅ Database: Synced and ready
+## 🎯 Testing Overview
+
+This guide covers complete testing procedures for all user roles and features in SimpleLMS.
+
+## 🖥️ Servers Status Check
+
+Before testing, ensure both servers are running:
+- ✅ **Frontend (React)**: http://localhost:3000
+- ✅ **Backend (Express)**: http://localhost:5000
+- ✅ **Database**: MySQL/MariaDB synced
+
+### Quick Server Check
+```bash
+# Backend should show:
+✅ Backend server running on port 5000
+📦 Database synced
+
+# Frontend should show:
+Compiled successfully!
+webpack compiled with X warnings
+```
 
 ---
 
-## Testing Checklist
+## 👥 Test Accounts
 
-### 1. Login Page
-- [ ] Page loads with email and password fields
-- [ ] Header is visible at top with LMS branding
-- [ ] Can enter email and password
-- [ ] Login button is functional
-- [ ] Error message displays for invalid credentials
-- [ ] Successful login redirects to /catalog
+### Admin
+- **Email**: admin@lms.com
+- **Password**: Admin123!
 
-**Test Credentials:**
-- Admin: admin@example.com / password
-- Instructor: instructor@example.com / password
-- Student: student@example.com / password
+### Instructor
+- **Email**: instructor@lms.com
+- **Password**: Instructor123!
 
-### 2. Navigation & Header
-- [ ] Header shows "Simple LMS" branding
-- [ ] Header shows user role badge with username
-- [ ] Navigation buttons appear based on user role:
-  - [ ] Students see: Courses, Dashboard
-  - [ ] Instructors see: Courses, Dashboard, Create
-  - [ ] Admins see: Courses, Dashboard, Create
+### Student
+- **Email**: student@lms.com
+- **Password**: Student123!
+
+---
+
+## 🧪 Complete Testing Checklist
+
+### 1. Authentication & Authorization
+
+#### Login Page Testing
+- [ ] Page loads at http://localhost:3000
+- [ ] Email and password fields are visible
+- [ ] "Login" button is present
+- [ ] Can enter credentials
+- [ ] Invalid credentials show error message
+- [ ] Valid credentials redirect to appropriate page
+- [ ] Token persists on page refresh
+
+#### Header & Navigation
+- [ ] Header displays "SimpleLMS" branding
+- [ ] User role badge shows (Student/Instructor/Admin)
+- [ ] Navigation buttons based on role:
+  - **Student**: Courses, Dashboard
+  - **Instructor**: Courses, Dashboard, Create Course
+  - **Admin**: Courses, Dashboard, Admin Panel
 - [ ] Logout button works and returns to login
 
-### 3. Catalog Page (/catalog)
-- [ ] Page loads with list of courses
-- [ ] Course cards display: title, level, description
-- [ ] Search functionality works (search by title/description)
-- [ ] Level filter works (beginner/intermediate/advanced)
-- [ ] For students: "Enroll" button works and updates enrollment status
-- [ ] Clicking course card navigates to /course/:courseId
-- [ ] Course enrollment updates the list
+### 2. Student Role Testing
 
-### 4. Course Detail Page (/course/:courseId)
-- [ ] Page loads course title, description, and level
-- [ ] Materials section displays all course materials
-- [ ] Quizzes section displays list of quizzes
-- [ ] Clicking a quiz shows quiz title and number of questions
-- [ ] Click "Take Quiz" opens quiz modal
-- [ ] In quiz modal:
-  - [ ] All questions display with options
-  - [ ] Can select answers for each question
-  - [ ] Submit button is functional
-  - [ ] After submit: shows score and correct/incorrect answers
-  - [ ] Can close modal and go back to course
+#### A. Course Catalog (/catalog)
+
+- [ ] Page displays grid of course cards
+- [ ] Each card shows: title, description, level, instructor
+- [ ] Search bar filters courses by title/description
+- [ ] Level filter works (Beginner/Intermediate/Advanced)
+- [ ] Instructor filter works
+- [ ] "View" button navigates to course detail
+- [ ] "Enroll" button works for non-enrolled courses
+- [ ] Enrollment status updates after enrolling
+
+#### B. Course Detail Page (/course/:id)
+- [ ] Course title, description, and level display
+- [ ] Instructor name shows
+- [ ] Enrollment status is visible
+- [ ] "Enroll Now" button for non-enrolled students
+- [ ] "Already Enrolled" shows after enrollment
+
+**Materials Section:**
+- [ ] Materials display in organized list
+- [ ] "View Material" opens MaterialModal
+- [ ] PDF materials display in modal viewer
+- [ ] Video materials embed and play
+- [ ] Text materials display formatted
+- [ ] "Mark as Complete" button works
+- [ ] Completed materials show checkmark
+
+**Quizzes Section:**
+- [ ] Quiz list shows all course quizzes
+- [ ] Shows quiz title and question count
+- [ ] "Take Quiz" opens quiz modal
+- [ ] Previously attempted quizzes show score
+- [ ] "Retake Quiz" option available
+
+**Quiz Taking:**
+- [ ] Quiz modal opens with all questions
+- [ ] Multiple choice options display (4 per question)
+- [ ] Can select answers
+- [ ] "Submit Quiz" enabled after answering
+- [ ] Submission shows immediate results
+- [ ] Score displays as X/Y (percentage)
+- [ ] Pass/fail status shows (60% threshold)
+- [ ] Modal closes after submission
+- [ ] Course detail refreshes with new score
 
 ### 5. Dashboard Page (/dashboard)
 
