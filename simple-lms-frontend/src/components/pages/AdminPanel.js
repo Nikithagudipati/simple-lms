@@ -238,7 +238,13 @@ function AdminPanel() {
       setSuccess('Quiz created successfully!');
       setQuizFormData({ title: '', questions: [] });
       setShowCreateQuizForm(false);
-      loadAdminData();
+      await loadAdminData();
+      // Refresh the course materials view to show the new quiz
+      const response = await apiGetAllCourses();
+      const updatedCourse = (response.data || []).find(c => c.id === selectedCourseMaterials.id);
+      if (updatedCourse) {
+        setSelectedCourseMaterials(updatedCourse);
+      }
     } catch (err) {
       setError(err.response?.data?.msg || 'Failed to create quiz');
     }
@@ -275,6 +281,8 @@ function AdminPanel() {
 
   const viewCourseMaterials = (course) => {
     setSelectedCourseMaterials(course);
+    setShowCreateQuizForm(false);
+    setQuizFormData({ title: '', questions: [] });
   };
 
   const viewCourseEnrollments = async (course) => {
@@ -848,7 +856,7 @@ function AdminPanel() {
                           onChange={(e) => setQuizFormData({ ...quizFormData, title: e.target.value })}
                         />
 
-                        <h4 style={{ marginTop: '16px' }}>Questions</h4>
+                        <h4 style={{ marginTop: '16px', marginBottom: '20px' }}>Questions</h4>
                         {quizFormData.questions.map((q, qIdx) => (
                           <div key={qIdx} style={{ backgroundColor: '#1a1a1b', padding: '12px', borderRadius: '4px', marginBottom: '12px' }}>
                             <label className="label">Question {qIdx + 1}</label>
