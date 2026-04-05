@@ -7,6 +7,7 @@ const Quiz = require('./Quiz');
 const Question = require('./Question');
 const Enrollment = require('./Enrollment');
 const Attempt = require('./Attempt');
+const MaterialCompletion = require('./MaterialCompletion');
 
 
 
@@ -30,7 +31,6 @@ Question.belongsTo(Quiz);
 User.belongsToMany(Course, { through: Enrollment });
 Course.belongsToMany(User, { through: Enrollment });
 
-
 Enrollment.belongsTo(User);
 Enrollment.belongsTo(Course);
 
@@ -40,6 +40,12 @@ Quiz.hasMany(Attempt);
 Attempt.belongsTo(User);
 Attempt.belongsTo(Quiz);
 
+// Material Completions
+User.hasMany(MaterialCompletion);
+CourseMaterial.hasMany(MaterialCompletion);
+MaterialCompletion.belongsTo(User);
+MaterialCompletion.belongsTo(CourseMaterial);
+
 module.exports = {
   sequelize,
   User,
@@ -48,5 +54,6 @@ module.exports = {
   Quiz,
   Question,
   Enrollment,
-  Attempt
+  Attempt,
+  MaterialCompletion
 };

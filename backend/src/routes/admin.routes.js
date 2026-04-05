@@ -1,7 +1,7 @@
 const router = require('express').Router();
 const auth = require('../middleware/auth.middleware');
 const role = require('../middleware/role.middleware');
-const { Course, CourseMaterial, Attempt, Quiz } = require('../models');
+const { Course, CourseMaterial, Attempt, Quiz, Question } = require('../models');
 
 
 // Admin creates course
@@ -20,8 +20,90 @@ router.post('/courses', auth, role('admin'), async (req, res) => {
 
 // Admin views all courses
 router.get('/courses', auth, role('admin'), async (req, res) => {
-  const courses = await Course.findAll();
-  res.json(courses);
+  try {
+    const courses = await Course.findAll({
+      include: [
+        {
+          model: require('../models').User,
+          as: 'Instructor',
+          attributes: ['id', 'name', 'email']
+        },
+        {
+          model: Quiz,
+          attributes: ['id', 'title']
+        },
+        {
+          model: require('../models').CourseMaterial,
+          attributes: ['id', 'title', 'type', 'url']
+        }
+      ]
+    });
+    res.json(courses);
+  } catch (err) {
+    console.error('Error fetching courses:', err);
+    res.status(500).json({ msg: 'Failed to fetch courses' });
+  }
+});
+
+// Admin views all users
+router.get('/users', auth, role('admin'), async (req, res) => {
+  const users = await require('../models').User.findAll({
+    attributes: ['id', 'name', 'email', 'role', 'createdAt'],
+    order: [['createdAt', 'DESC']]
+  });
+  res.json(users);
+});
+
+// Admin creates user
+router.post('/users', auth, role('admin'), async (req, res) => {
+  const bcrypt = require('bcrypt');
+  const { name, email, password, role: userRole } = req.body;
+
+  if (!name || !email || !password || !userRole) {
+    return res.status(400).json({ msg: 'Name, email, password, and role are required' });
+  }
+
+  // Validate role
+  if (!['admin', 'instructor', 'student'].includes(userRole)) {
+    return res.status(400).json({ msg: 'Invalid role. Must be admin, instructor, or student' });
+  }
+
+  // Check if user already exists
+  const existingUser = await require('../models').User.findOne({ where: { email } });
+  if (existingUser) {
+    return res.status(400).json({ msg: 'User with this email already exists' });
+  }
+
+  // Hash password
+  const hashedPassword = await bcrypt.hash(password, 10);
+
+  // Create user
+  const user = await require('../models').User.create({
+    name,
+    email: email.toLowerCase().trim(),
+    password: hashedPassword,
+    role: userRole
+  });
+
+  res.json({
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    role: user.role
+  });
+});
+
+// Admin deletes user
+router.delete('/users/:id', auth, role('admin'), async (req, res) => {
+  const userId = req.params.id;
+  
+  // Prevent admin from deleting themselves
+  if (Number(userId) === req.user.id) {
+    return res.status(400).json({ msg: 'Cannot delete your own account' });
+  }
+  
+  await require('../models').User.destroy({ where: { id: userId } });
+  res.json({ msg: 'User deleted' });
 });
 
 // Admin updates course
@@ -104,20 +186,33 @@ router.get('/quiz-analytics', auth, role('admin'), async (req, res) => {
     include: [
       {
         model: Attempt
+      },
+      {
+        model: Question
       }
     ]
   });
 
-  const analytics = quizzes.map(q => ({
-    quizId: q.id,
-    title: q.title,
-    totalAttempts: q.Attempts.length,
-    averageScore:
-      q.Attempts.length === 0
-        ? 0
-        : q.Attempts.reduce((sum, a) => sum + a.score, 0) /
-          q.Attempts.length
-  }));
+  const analytics = quizzes.map(q => {
+    const totalQuestions = q.Questions ? q.Questions.length : 0;
+    const attempts = q.Attempts || [];
+    
+    let avgScore = 0;
+    if (attempts.length > 0 && totalQuestions > 0) {
+      const totalPercentage = attempts.reduce((sum, a) => {
+        // Calculate percentage: (score / totalQuestions) * 100
+        return sum + (a.score / totalQuestions) * 100;
+      }, 0);
+      avgScore = totalPercentage / attempts.length;
+    }
+    
+    return {
+      quizId: q.id,
+      title: q.title,
+      totalAttempts: attempts.length,
+      averageScore: Math.round(avgScore * 100) / 100 // Round to 2 decimal places
+    };
+  });
 
   res.json(analytics);
 });
@@ -129,6 +224,7 @@ router.get('/analytics', auth, role('admin'), async (req, res) => {
   const totalUsers = await require('../models').User.count();
   const totalCourses = await Course.count();
   const totalEnrollments = await require('../models').Enrollment.count();
+  const totalQuizzes = await Quiz.count();
   const totalAttempts = await require('../models').Attempt.count();
 
   const avgScore = await require('../models').Attempt.findAll({
@@ -137,13 +233,245 @@ router.get('/analytics', auth, role('admin'), async (req, res) => {
     ]
   });
 
+  // role breakdown
+  const User = require('../models').User;
+  const studentsCount = await User.count({ where: { role: 'student' } });
+  const instructorsCount = await User.count({ where: { role: 'instructor' } });
+  const adminsCount = await User.count({ where: { role: 'admin' } });
+
   res.json({
     totalUsers,
     totalCourses,
     totalEnrollments,
+    totalQuizzes,
     totalQuizAttempts: totalAttempts,
-    averageQuizScore: avgScore[0].dataValues.avgScore || 0
+    averageQuizScore: avgScore[0].dataValues.avgScore || 0,
+    students: studentsCount,
+    instructors: instructorsCount,
+    admins: adminsCount
   });
+});
+
+// Return role breakdown (students, instructors, admins)
+router.get('/analytics/roles', auth, role('admin'), async (req, res) => {
+  const User = require('../models').User;
+  const students = await User.count({ where: { role: 'student' } });
+  const instructors = await User.count({ where: { role: 'instructor' } });
+  const admins = await User.count({ where: { role: 'admin' } });
+
+  res.json({ students, instructors, admins });
+});
+
+/* =========================
+   ADMIN: GET ENROLLMENTS BY COURSE
+========================= */
+router.get('/courses/:courseId/enrollments', auth, role('admin'), async (req, res) => {
+  try {
+    const courseId = req.params.courseId;
+    const Enrollment = require('../models').Enrollment;
+    const User = require('../models').User;
+
+    const enrollments = await Enrollment.findAll({
+      where: { CourseId: courseId },
+      include: [{
+        model: User,
+        attributes: ['id', 'name', 'email', 'role']
+      }],
+      order: [['createdAt', 'DESC']]
+    });
+
+    res.json(enrollments);
+  } catch (err) {
+    console.error('Error fetching enrollments:', err);
+    res.status(500).json({ msg: 'Failed to fetch enrollments' });
+  }
+});
+
+/* =========================
+   ADMIN: GET COURSES BY INSTRUCTOR
+========================= */
+router.get('/instructors/:instructorId/courses', auth, role('admin'), async (req, res) => {
+  try {
+    const instructorId = req.params.instructorId;
+    const Enrollment = require('../models').Enrollment;
+    
+    const courses = await Course.findAll({
+      where: { instructorId },
+      include: [
+        {
+          model: Quiz,
+          attributes: ['id', 'title']
+        },
+        {
+          model: CourseMaterial,
+          attributes: ['id', 'title', 'type']
+        }
+      ],
+      order: [['createdAt', 'DESC']]
+    });
+
+    // Manually count enrollments for each course
+    const coursesWithEnrollments = await Promise.all(courses.map(async (course) => {
+      const enrollmentCount = await Enrollment.count({ where: { CourseId: course.id } });
+      return {
+        ...course.toJSON(),
+        Enrollments: Array(enrollmentCount).fill({ id: null }) // Create array with length for frontend
+      };
+    }));
+
+    res.json(coursesWithEnrollments);
+  } catch (err) {
+    console.error('Error fetching instructor courses:', err);
+    res.status(500).json({ msg: 'Failed to fetch courses' });
+  }
+});
+
+// Admin reset password for user
+router.post('/users/:id/reset-password', auth, role('admin'), async (req, res) => {
+  const { newPassword } = req.body;
+  if (!newPassword) return res.status(400).json({ msg: 'New password is required' });
+
+  const bcrypt = require('bcrypt');
+  const User = require('../models').User;
+  const user = await User.findByPk(req.params.id);
+  if (!user) return res.status(404).json({ msg: 'User not found' });
+
+  user.password = await bcrypt.hash(newPassword, 10);
+  await user.save();
+
+  res.json({ msg: 'Password reset successfully' });
+});
+
+// Admin impersonate user (returns a token for that user)
+router.post('/impersonate/:id', auth, role('admin'), async (req, res) => {
+  const User = require('../models').User;
+  const jwt = require('jsonwebtoken');
+
+  const user = await User.findByPk(req.params.id);
+  if (!user) return res.status(404).json({ msg: 'User not found' });
+
+  const token = jwt.sign(
+    { id: user.id, role: user.role },
+    process.env.JWT_SECRET,
+    { expiresIn: '1d' }
+  );
+
+  res.json({ token, id: user.id, role: user.role, name: user.name });
+});
+
+/* =========================
+   ADMIN: CREATE QUIZ
+========================= */
+router.post('/quizzes', auth, role('admin'), async (req, res) => {
+  const { courseId, title, questions } = req.body;
+
+  const course = await Course.findByPk(courseId);
+  if (!course) {
+    return res.status(404).json({ msg: 'Course not found' });
+  }
+
+  const quiz = await Quiz.create({
+    title,
+    CourseId: courseId
+  });
+
+  for (const q of questions) {
+    await Question.create({
+      question: q.question,
+      options: q.options,
+      correctAnswer: q.correctAnswer,
+      QuizId: quiz.id
+    });
+  }
+
+  res.json({
+    msg: 'Quiz created successfully',
+    quizId: quiz.id
+  });
+});
+
+/* =========================
+   ADMIN: GET QUIZ FOR EDITING
+========================= */
+router.get('/quizzes/:quizId', auth, role('admin'), async (req, res) => {
+  const quiz = await Quiz.findByPk(req.params.quizId, {
+    include: [{
+      model: Course
+    }, {
+      model: Question
+    }]
+  });
+
+  if (!quiz) {
+    return res.status(404).json({ msg: 'Quiz not found' });
+  }
+
+  res.json({
+    id: quiz.id,
+    title: quiz.title,
+    courseId: quiz.CourseId,
+    questions: quiz.Questions.map(q => ({
+      id: q.id,
+      question: q.question,
+      options: q.options,
+      correctAnswer: q.correctAnswer
+    }))
+  });
+});
+
+/* =========================
+   ADMIN: UPDATE QUIZ
+========================= */
+router.put('/quizzes/:quizId', auth, role('admin'), async (req, res) => {
+  const { title, questions } = req.body;
+  const quizId = req.params.quizId;
+
+  const quiz = await Quiz.findByPk(quizId);
+
+  if (!quiz) {
+    return res.status(404).json({ msg: 'Quiz not found' });
+  }
+
+  // Update quiz title
+  if (title) {
+    quiz.title = title;
+    await quiz.save();
+  }
+
+  // Update questions if provided
+  if (questions && Array.isArray(questions)) {
+    // Delete existing questions
+    await Question.destroy({ where: { QuizId: quizId } });
+
+    // Create new questions
+    for (const q of questions) {
+      await Question.create({
+        question: q.question,
+        options: q.options,
+        correctAnswer: q.correctAnswer,
+        QuizId: quizId
+      });
+    }
+  }
+
+  res.json({
+    msg: 'Quiz updated successfully',
+    quizId: quiz.id
+  });
+});
+
+/* =========================
+   ADMIN: DELETE QUIZ
+========================= */
+router.delete('/quizzes/:quizId', auth, role('admin'), async (req, res) => {
+  const quiz = await Quiz.findByPk(req.params.quizId);
+
+  if (!quiz) {
+    return res.status(404).json({ msg: 'Quiz not found' });
+  }
+
+  await Quiz.destroy({ where: { id: req.params.quizId } });
+  res.json({ msg: 'Quiz deleted successfully' });
 });
 
 

@@ -11,13 +11,15 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ msg: 'Email and password are required' });
     }
 
-    const user = await User.findOne({ where: { email } });
+    const user = await User.findOne({ where: { email: email.toLowerCase().trim() } });
     if (!user) {
+      console.log(`Login attempt failed: User not found for email: ${email}`);
       return res.status(401).json({ msg: 'Invalid credentials' });
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
+      console.log(`Login attempt failed: Password mismatch for email: ${email}`);
       return res.status(401).json({ msg: 'Invalid credentials' });
     }
 
@@ -27,13 +29,15 @@ router.post('/login', async (req, res) => {
       { expiresIn: '1d' }
     );
 
+    console.log(`Login successful for: ${user.email} (${user.role})`);
     res.json({
       token,
+      id: user.id,
       role: user.role,
       name: user.name
     });
   } catch (err) {
-    console.error(err);
+    console.error('Login error:', err);
     res.status(500).json({ msg: 'Server error' });
   }
 });

@@ -19,8 +19,26 @@ const { sequelize, User } = require('../models');
         role: 'instructor'
       },
       {
-        name: 'Student User',
+        name: 'Student One',
         email: 'student@lms.com',
+        password: await bcrypt.hash('stud123', 10),
+        role: 'student'
+      },
+      {
+        name: 'Student Two',
+        email: 'student2@lms.com',
+        password: await bcrypt.hash('stud123', 10),
+        role: 'student'
+      },
+      {
+        name: 'Student Three',
+        email: 'student3@lms.com',
+        password: await bcrypt.hash('stud123', 10),
+        role: 'student'
+      },
+      {
+        name: 'Student Four',
+        email: 'student4@lms.com',
         password: await bcrypt.hash('stud123', 10),
         role: 'student'
       }

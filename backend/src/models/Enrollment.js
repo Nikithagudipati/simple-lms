@@ -9,6 +9,10 @@ const Enrollment = sequelize.define('Enrollment', {
   completed: {
     type: DataTypes.BOOLEAN,
     defaultValue: false
+  },
+  timeSpent: {
+    type: DataTypes.INTEGER, // Time in minutes
+    defaultValue: 0
   }
 });
 
